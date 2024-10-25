@@ -87,10 +87,11 @@ class HomePage extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => ChatPage(
                     ontap: () {
-                      viewProfile(context, userData["username"]);
+                      viewProfile(
+                          context, userData["username"] ?? userData['email']);
                     },
                     receiverID: userData['uid'],
-                    receiver: userData["username"],
+                    receiver: userData["username"] ?? userData['email'],
                   ),
                 ));
           },

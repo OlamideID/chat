@@ -4,7 +4,6 @@ import 'package:chat/components/passtext.dart';
 import 'package:chat/components/textfield.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rive/rive.dart';
@@ -80,12 +79,13 @@ class _RegisterPageState extends State<RegisterPage> {
     isChecking?.change(false);
   }
 
- register(BuildContext context) async {
+  
+register(BuildContext context) async {
   final auth = Authservice();
   final firestore = FirebaseFirestore.instance; // Firestore instance to query usernames
 
+  // Check if username field is empty
   if (usernameCtrl.text.isEmpty) {
-    // Show error if username field is empty
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -104,6 +104,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return;
   }
 
+  // Check if passwords match
   if (passCntrl.text == confirmpassCntrl.text) {
     try {
       // Check if the username already exists
@@ -131,17 +132,14 @@ class _RegisterPageState extends State<RegisterPage> {
         );
       } else {
         // Proceed with registration if the username is available
-        UserCredential userCredential = await auth.signUpWithEmailAndUsername(
+        await auth.signUpWithEmailAndUsername(
             _emailCntrl.text, passCntrl.text, usernameCtrl.text);
 
-        // Send email verification
-        await userCredential.user?.sendEmailVerification();
-
-        // Show a success SnackBar
+        // Show a success SnackBar without sending verification email
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Registration successful! Please check your email to verify your account.',
+              'Registration successful! You can now log in.',
               style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
             duration: const Duration(seconds: 4),
@@ -153,6 +151,9 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         );
+
+        // Optionally, navigate to the login or home screen
+        // Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       showDialog(
@@ -164,6 +165,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     }
   } else {
+    // Show error if passwords do not match
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -181,6 +183,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
+
 
   togglePass() {
     setState(() {
