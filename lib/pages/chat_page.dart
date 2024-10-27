@@ -5,10 +5,8 @@ import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../services/call_service.dart';
-
-class ChatPage extends StatelessWidget {
-  ChatPage(
+class ChatPage extends StatefulWidget {
+  const ChatPage(
       {super.key,
       required this.receiver,
       required this.receiverID,
@@ -17,17 +15,59 @@ class ChatPage extends StatelessWidget {
   final String receiverID;
   final Function()? ontap;
 
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messagectrl = TextEditingController();
+
   final ChatService chat = ChatService();
+
   final Authservice auth = Authservice();
-  final callService = CallService();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        Future.delayed(
+          const Duration(milliseconds: 500),
+          () => scrollDown(),
+        );
+      }
+    });
+
+    Future.delayed(
+      const Duration(milliseconds: 500),
+      () => scrollDown(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _messagectrl.dispose();
+    super.dispose();
+  }
+
+  final ScrollController _scrollController = ScrollController();
+
+  scrollDown() {
+    _scrollController.animateTo(_scrollController.position.maxScrollExtent,
+        duration: const Duration(seconds: 1), curve: Curves.fastOutSlowIn);
+  }
+
+  //final callService = CallService();
 
   _sendMessage() async {
     if (_messagectrl.text.isNotEmpty) {
-      await chat.sendMessage(receiverID, _messagectrl.text);
+      await chat.sendMessage(widget.receiverID, _messagectrl.text);
 
       _messagectrl.clear();
     }
+    scrollDown();
   }
 
   @override
@@ -36,11 +76,7 @@ class ChatPage extends StatelessWidget {
       appBar: AppBar(
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.video_call)),
-          IconButton(
-              onPressed: () {
-                ;
-              },
-              icon: const Icon(Icons.call))
+          IconButton(onPressed: () {}, icon: const Icon(Icons.call))
         ],
         title: Row(
           children: [
@@ -54,7 +90,7 @@ class ChatPage extends StatelessWidget {
             const SizedBox(
               width: 7,
             ),
-            GestureDetector(onTap: ontap, child: Text(receiver)),
+            GestureDetector(onTap: widget.ontap, child: Text(widget.receiver)),
           ],
         ),
         leading: IconButton(
@@ -76,7 +112,7 @@ class ChatPage extends StatelessWidget {
   Widget _buildMessageList() {
     String senderId = auth.currentUser()!.uid;
     return StreamBuilder(
-      stream: chat.getMessages(receiverID, senderId),
+      stream: chat.getMessages(widget.receiverID, senderId),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(
@@ -96,6 +132,7 @@ class ChatPage extends StatelessWidget {
         }
 
         return ListView(
+          controller: _scrollController,
           children:
               snapshot.data!.docs.map((doc) => _buildMessageItem(doc)).toList(),
         );
@@ -126,6 +163,7 @@ class ChatPage extends StatelessWidget {
         children: [
           Expanded(
             child: MyTextField(
+              focusNode: _focusNode,
               hintText: 'Type a message',
               obscure: false,
               controller: _messagectrl,

@@ -78,7 +78,6 @@ class HomePage extends StatelessWidget {
   Widget _buildUserItem(Map<String, dynamic> userData, BuildContext context) {
     if (userData["uid"] != _authservice.currentUser()?.uid) {
       return InkWell(
-        onLongPress: () {},
         child: UserTile(
           text: userData["username"],
           onTap: () {
@@ -87,11 +86,10 @@ class HomePage extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => ChatPage(
                     ontap: () {
-                      viewProfile(
-                          context, userData["username"] ?? userData['email']);
+                      viewProfile(context, userData["username"] ?? '');
                     },
                     receiverID: userData['uid'],
-                    receiver: userData["username"] ?? userData['email'],
+                    receiver: userData["username"] ?? '',
                   ),
                 ));
           },

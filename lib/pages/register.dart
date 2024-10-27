@@ -46,7 +46,7 @@ class _RegisterPageState extends State<RegisterPage> {
           StateMachineController.fromArtboard(art, 'Login Machine');
       if (stateMachineController != null) {
         art.addController(stateMachineController!);
-        stateMachineController!.inputs.forEach((element) {
+        for (var element in stateMachineController!.inputs) {
           if (element.name == 'isChecking') {
             isChecking = element as SMIBool;
           } else if (element.name == 'isHandsUp') {
@@ -59,7 +59,7 @@ class _RegisterPageState extends State<RegisterPage> {
           setState(() {
             artboard = art;
           });
-        });
+        }
       }
     });
   }

@@ -82,12 +82,12 @@ class _LoginPageState extends State<LoginPage> {
     isChecking?.change(false);
     isHandsup?.change(false);
     try {
-      successTigger!.fire();
+      successTigger?.fire();
       Future.delayed(Durations.short4);
       await auth.signInWithEmailAndPassword(_emailCntrl.text, passCntrl.text);
       // successTigger?.fire();
     } catch (e) {
-      failTigger!.fire();
+      failTigger?.fire();
       showDialog(
         // ignore: use_build_context_synchronously
         context: context,
@@ -99,6 +99,7 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() {});
   }
+
 //resets password
   void forgotPassword() async {
     final auth = Authservice();
@@ -123,7 +124,6 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
-  
 
   togglePass() {
     setState(() {
@@ -151,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                 if (artboard != null)
                   SizedBox(
                     height: 300,
-                    width: double.infinity,
+                    width: 700,
                     child: Rive(artboard: artboard!),
                   ),
                 const SizedBox(

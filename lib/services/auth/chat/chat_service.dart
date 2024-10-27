@@ -62,7 +62,7 @@ class ChatService {
 
     // Generate a unique file path in Firebase Storage
     String filePath =
-        'chat_images/${DateTime.now().millisecondsSinceEpoch}_${currentUserID}.jpg';
+        'chat_images/${DateTime.now().millisecondsSinceEpoch}_$currentUserID.jpg';
 
     try {
       // Upload the image to Firebase Storage
