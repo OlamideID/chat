@@ -99,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() {});
   }
-
+//resets password
   void forgotPassword() async {
     final auth = Authservice();
     String email = _emailCntrl.text.trim();
@@ -123,6 +123,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+  
 
   togglePass() {
     setState(() {
