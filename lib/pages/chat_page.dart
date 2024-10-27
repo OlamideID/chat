@@ -44,10 +44,12 @@ class ChatPage extends StatelessWidget {
         ],
         title: Row(
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                  shape: BoxShape.circle, color: Colors.white),
-              child: const CircleAvatar(),
+            CircleAvatar(
+              // backgroundColor: Colors.white,
+              child: Image.asset(
+                'assets/defaultprofile.jpg',
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(
               width: 7,

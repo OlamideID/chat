@@ -7,9 +7,11 @@ class MyTextField extends StatelessWidget {
       required this.obscure,
       required this.controller,
       required this.onTap,
-      this.onChanged});
+      this.onChanged,
+      this.focusNode});
   final String hintText;
   final bool obscure;
+  final FocusNode? focusNode;
   final TextEditingController controller;
   final Function() onTap;
   final Function(String)? onChanged;
@@ -19,6 +21,7 @@ class MyTextField extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
+        focusNode: focusNode,
         onChanged: onChanged,
         onTap: onTap,
         controller: controller,

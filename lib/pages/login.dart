@@ -32,27 +32,32 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
 
-    rootBundle.load(riveUrl).then((value) {
-      final file = RiveFile.import(value);
-      final art = file.mainArtboard;
-      stateMachineController =
-          StateMachineController.fromArtboard(art, 'Login Machine');
-      if (stateMachineController != null) {
-        art.addController(stateMachineController!);
-        stateMachineController!.inputs.forEach((element) {
-          if (element.name == 'isChecking') {
-            isChecking = element as SMIBool;
-          } else if (element.name == 'isHandsUp') {
-            isHandsup = element as SMIBool;
-          } else if (element.name == 'trigSuccess') {
-            failTigger = element as SMITrigger;
-          } else if (element.name == 'numLook') {
-            lookNum = element as SMINumber;
+    // Initialize RiveFile
+    RiveFile.initialize().then((_) {
+      rootBundle.load(riveUrl).then((value) {
+        final file = RiveFile.import(value);
+        final art = file.mainArtboard;
+        stateMachineController =
+            StateMachineController.fromArtboard(art, 'Login Machine');
+        if (stateMachineController != null) {
+          art.addController(stateMachineController!);
+          for (var element in stateMachineController!.inputs) {
+            if (element.name == 'isChecking') {
+              isChecking = element as SMIBool;
+            } else if (element.name == 'isHandsUp') {
+              isHandsup = element as SMIBool;
+            } else if (element.name == 'trigFail') {
+              failTigger = element as SMITrigger;
+            } else if (element.name == 'trigSuccess') {
+              successTigger = element as SMITrigger;
+            } else if (element.name == 'numLook') {
+              lookNum = element as SMINumber;
+            }
           }
+        }
+        setState(() {
+          artboard = art;
         });
-      }
-      setState(() {
-        artboard = art;
       });
     });
   }
@@ -77,12 +82,12 @@ class _LoginPageState extends State<LoginPage> {
     isChecking?.change(false);
     isHandsup?.change(false);
     try {
-      failTigger?.fire();
+      successTigger!.fire();
+      Future.delayed(Durations.short4);
       await auth.signInWithEmailAndPassword(_emailCntrl.text, passCntrl.text);
       // successTigger?.fire();
     } catch (e) {
-      successTigger?.fire();
-
+      failTigger!.fire();
       showDialog(
         // ignore: use_build_context_synchronously
         context: context,
@@ -109,7 +114,8 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await auth.sendPasswordResetEmail(email);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent! Check your inbox.')),
+        const SnackBar(
+            content: Text('Password reset email sent! Check your inbox.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,107 +128,109 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       obscured = !obscured;
     });
-    obscured ? coverEyes() : lookAround() && moveEyes(context);
-  }
 
-  dostuff() {
-    setState(() {
-      obscured = !obscured;
-    });
-    obscured ? coverEyes() : moveEyes(context);
+    if (obscured == true) {
+      coverEyes();
+    } else {
+      lookAround();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(155, 187, 222, 251),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (artboard != null)
-                SizedBox(
-                  height: 300,
-                  width: 700,
-                  child: Rive(artboard: artboard!),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            // padding: EdgeInsets.all(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (artboard != null)
+                  SizedBox(
+                    height: 300,
+                    width: double.infinity,
+                    child: Rive(artboard: artboard!),
+                  ),
+                const SizedBox(
+                  height: 10,
                 ),
-              const SizedBox(
-                height: 50,
-              ),
-              Text(
-                'Welcome back you\'ve been missed',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary, fontSize: 16),
-              ),
-              const SizedBox(
-                height: 25,
-              ),
-              MyTextField(
-                onChanged: moveEyes,
-                onTap: lookAround,
-                controller: _emailCntrl,
-                hintText: 'Email',
-                obscure: false,
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              PassText(
-                obscured: obscured,
-                onPressed: togglePass,
-                icon: obscured
-                    ? const Icon(Icons.visibility_off)
-                    : const Icon(Icons.visibility),
-                controller: passCntrl,
-                thing: 'Password',
-                ontap: coverEyes,
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              Button(
-                text: 'Login',
-                onTap: () {
-                  login(context);
-                },
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Not a Member?'),
-                    const SizedBox(
-                      width: 25,
-                    ),
-                    InkWell(
-                      onTap: widget.onTap,
-                      child: const Text(
-                        'Register now',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              const SizedBox(height: 15), // Add spacing between elements
-              InkWell(
-                onTap: forgotPassword, // Call forgotPassword method
-                child: const Text(
-                  'Forgot Password?',
+                Text(
+                  'Welcome back you\'ve been missed',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 16),
+                ),
+                const SizedBox(
+                  height: 15,
+                ),
+                MyTextField(
+                  onChanged: moveEyes,
+                  onTap: lookAround,
+                  controller: _emailCntrl,
+                  hintText: 'Email',
+                  obscure: false,
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                PassText(
+                  obscured: obscured,
+                  onPressed: togglePass,
+                  icon: obscured
+                      ? const Icon(Icons.visibility_off)
+                      : const Icon(Icons.visibility),
+                  controller: passCntrl,
+                  thing: 'Password',
+                  ontap: coverEyes,
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                Button(
+                  text: 'Login',
+                  onTap: () {
+                    login(context);
+                  },
+                ),
+                const SizedBox(
+                  height: 15,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Not a Member?'),
+                      const SizedBox(
+                        width: 25,
+                      ),
+                      InkWell(
+                        onTap: widget.onTap,
+                        child: const Text(
+                          'Register now',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 15), // Add spacing between elements
+                InkWell(
+                  onTap: forgotPassword, // Call forgotPassword method
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

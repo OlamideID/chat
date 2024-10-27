@@ -7,7 +7,10 @@ class PassText extends StatefulWidget {
     required this.thing,
     required this.ontap,
     this.onPressed,
-    required this.icon, required this.obscured, this.onChanged, this.focusNode,
+    required this.icon,
+    required this.obscured,
+    this.onChanged,
+    this.focusNode,
   });
   final TextEditingController controller;
   final String thing;
@@ -34,11 +37,17 @@ class _PassTextState extends State<PassText> {
         controller: widget.controller,
         obscureText: widget.obscured,
         decoration: InputDecoration(
-            suffix: IconButton(onPressed: widget.onPressed, icon: widget.icon),
+            suffixIcon: IconButton(
+              onPressed: widget.onPressed,
+              icon: widget.icon,
+              padding: EdgeInsets.zero, // Ensure no extra padding
+              constraints: const BoxConstraints(),
+            ),
             enabledBorder: OutlineInputBorder(
-                borderSide:
-                    BorderSide(color: Theme.of(context).colorScheme.tertiary),
-                borderRadius: BorderRadius.circular(10)),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.tertiary),
+              borderRadius: BorderRadius.circular(10),
+            ),
             focusedBorder: OutlineInputBorder(
               borderSide:
                   BorderSide(color: Theme.of(context).colorScheme.primary),
