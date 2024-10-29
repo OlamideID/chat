@@ -55,6 +55,24 @@ class ChatService {
         .snapshots();
   }
 
+  Future<void> updateTypingStatus(String otherUserID, bool isTyping) async {
+  final String currentUserID = _auth.currentUser!.uid;
+
+  // Sort user IDs to form a unique chat room ID
+  List<String> ids = [currentUserID, otherUserID];
+  ids.sort();
+  String chatRoomId = ids.join('_');
+
+  // Update the typing status in Firestore
+  await _store
+      .collection('chat_rooms')
+      .doc(chatRoomId)
+      .set({
+        'isTyping': {currentUserID: isTyping},
+      }, SetOptions(merge: true));
+}
+
+
   Future<void> sendImage(String receiverID, File imageFile) async {
     final String currentUserID = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email!;
@@ -94,5 +112,77 @@ class ChatService {
       print("Error sending image: $e");
       throw Exception("Error sending image");
     }
+  }
+
+  Future<void> reportUser(String messageId, String userID) async {
+    final currentUser = _auth.currentUser;
+    final report = {
+      'reportedBy': currentUser!.uid,
+      'messageId': messageId,
+      'messageOwnerId': userID,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    await _store.collection('reports').add(report);
+  }
+
+  Future<void> blockUser(String userId) async {
+    final currentUser = _auth.currentUser;
+
+    // Add the user to the BlockedUsers sub-collection with a timestamp
+    await _store
+        .collection('Users')
+        .doc(currentUser!.uid)
+        .collection('BlockedUsers')
+        .doc(userId)
+        .set({
+      'blockedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> unblockUser(String blockedUserID) async {
+    final currentUser = _auth.currentUser;
+    await _store
+        .collection('Users')
+        .doc(currentUser!.uid)
+        .collection('BlockedUsers')
+        .doc(blockedUserID)
+        .delete();
+  }
+
+  Stream<List<Map<String, dynamic>>> getBlockedUsers(String userId) {
+    return _store
+        .collection('Users')
+        .doc(userId)
+        .collection('BlockedUsers')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final blockedUser = snapshot.docs.map((doc) => doc.id).toList();
+      final userDocs = await Future.wait(
+          blockedUser.map((id) => _store.collection('Users').doc(id).get()));
+
+      return userDocs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> getExceptBlocked() {
+    final currentUser = _auth.currentUser;
+
+    return _store
+        .collection('Users')
+        .doc(currentUser!.uid)
+        .collection('BlockedUsers')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final blockedUsers = snapshot.docs.map((doc) => doc.id).toList();
+      final userSnapshot = await _store.collection('Users').get();
+
+      return userSnapshot.docs
+          .where((doc) =>
+              doc.data()['email'] != currentUser.email &&
+              !blockedUsers.contains(doc.id))
+          .map((doc) => doc.data())
+          .toList();
+    });
   }
 }
