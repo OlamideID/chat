@@ -1,5 +1,5 @@
 import 'package:chat/firebase_options.dart';
-import 'package:chat/providers/theme_provider.dart';
+// import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/auth_gate.dart';
 import 'package:chat/themes/dark.dart';
 import 'package:chat/themes/light.dart';
@@ -19,12 +19,12 @@ class MyApp extends ConsumerWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
+    // final theme = ref.watch(themeProvider);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: lightMode,
       darkTheme: dark,
-      themeMode: theme,
+      themeMode: ThemeMode.system,
       // darkTheme: ,
       home: const AuthGate(),
     );

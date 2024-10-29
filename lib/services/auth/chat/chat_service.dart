@@ -19,6 +19,45 @@ class ChatService {
     });
   }
 
+  Future<String> createGroup(String groupName, List<String> memberIds) async {
+  final currentUserID = _auth.currentUser!.uid;
+  
+  DocumentReference groupDoc = await _store.collection('GroupChats').add({
+    'groupName': groupName,
+    'createdBy': currentUserID,
+    'members': memberIds,
+  });
+  
+  return groupDoc.id; // Returns the new group chat ID
+}
+
+Future<void> sendGroupMessage(String groupChatID, String messageContent) async {
+  final String currentUserID = _auth.currentUser!.uid;
+  final String currentUserName = _auth.currentUser!.displayName ?? 'User';
+  final Timestamp timestamp = Timestamp.now();
+
+  await _store.collection('GroupChats')
+      .doc(groupChatID)
+      .collection('messages')
+      .add({
+        'senderID': currentUserID,
+        'senderName': currentUserName,
+        'message': messageContent,
+        'timestamp': timestamp,
+      });
+}
+
+Stream<QuerySnapshot> getGroupMessages(String groupChatID) {
+  return _store.collection('GroupChats')
+      .doc(groupChatID)
+      .collection('messages')
+      .orderBy('timestamp', descending: false)
+      .snapshots();
+}
+
+
+
+  
   Future<void> sendMessage(String receiverID, messageContent) async {
     final String currentUserID = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email!;

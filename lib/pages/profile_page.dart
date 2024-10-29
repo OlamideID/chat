@@ -121,84 +121,86 @@ class _ProfilePageState extends State<ProfilePage> {
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(
-                      fillColor: Theme.of(context).colorScheme.secondary,
-                      filled: true,
-                      labelText: 'Username',
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.tertiary,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                        fillColor: Theme.of(context).colorScheme.secondary,
+                        filled: true,
+                        labelText: 'Username',
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      labelText: 'Email',
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.tertiary,
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        filled: true,
+                        labelText: 'Email',
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(10),
                       ),
+                      readOnly: true,
                     ),
-                    readOnly: true,
-                  ),
-                  const SizedBox(height: 20),
-                  Column(
-                    children: [
-                      const Divider(),
-                      ListTile(
-                        title: const Text('Change Password'),
-                        leading: const Icon(Icons.lock),
-                        onTap: () {
-                          // Navigate to the change password page
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const ChangePasswordPage()),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      const Divider(),
-                      ListTile(
-                        title: const Text('Delete Account'),
-                        leading: const Icon(Icons.delete_forever),
-                        onTap: _showDeleteAccountDialog, // Show delete dialog
-                      ),
-                      const Divider()
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _updateProfile,
-                    child: const Text('Save Changes'),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Column(
+                      children: [
+                        const Divider(),
+                        ListTile(
+                          title: const Text('Change Password'),
+                          leading: const Icon(Icons.lock),
+                          onTap: () {
+                            // Navigate to the change password page
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ChangePasswordPage()),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        const Divider(),
+                        ListTile(
+                          title: const Text('Delete Account'),
+                          leading: const Icon(Icons.delete_forever),
+                          onTap: _showDeleteAccountDialog, // Show delete dialog
+                        ),
+                        const Divider()
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _updateProfile,
+                      child: const Text('Save Changes'),
+                    ),
+                  ],
+                ),
               ),
             ),
     );
