@@ -4,6 +4,7 @@ import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage(
@@ -103,14 +104,17 @@ class _ChatPageState extends State<ChatPage> {
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Column(
-            children: [
-              Text('Loading'),
-              SizedBox(
-                height: 10,
-              ),
-              CircularProgressIndicator()
-            ],
+          return Center(
+            child: Column(
+              children: [
+                const Text('Loading'),
+                const SizedBox(
+                  height: 10,
+                ),
+                Lottie.asset('assets/Animation - 1730069741511.json',
+                    height: 150, width: 150, frameRate: const FrameRate(60))
+              ],
+            ),
           );
         }
 

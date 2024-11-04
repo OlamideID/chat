@@ -7,7 +7,7 @@ import 'package:lottie/lottie.dart';
 
 class BlockedPage extends ConsumerWidget {
   BlockedPage(this.textStyle, {super.key});
-  final TextStyle textStyle; 
+  final TextStyle textStyle;
   final ChatService chatService = ChatService();
   final Authservice authservice = Authservice();
 
@@ -54,7 +54,6 @@ class BlockedPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Blocked Users'),
-        actions: [],
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: chatService.getBlockedUsers(userID),
