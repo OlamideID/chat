@@ -1,15 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rive/rive.dart';
-
 import 'package:chat/components/confirmpass.dart';
 import 'package:chat/components/mybutton.dart';
 import 'package:chat/components/passtext.dart';
 import 'package:chat/components/textfield.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rive/rive.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   final Function()? onTap;
@@ -93,7 +92,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     });
   }
 
-
   void toggleConfirmPasswordVisibility() {
     setState(() {
       confirmPasswordObscured = !confirmPasswordObscured;
@@ -134,13 +132,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         showSnackbar(context, 'Registration successful! You can now log in.');
       }
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Center(child: Text('Error')),
-          content: Text(e.toString()),
+      // Show a SnackBar with the error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(e.toString()), // The error message
+          duration: const Duration(
+              seconds: 3), // Duration the SnackBar will be visible
         ),
       );
+      ;
     }
   }
 
