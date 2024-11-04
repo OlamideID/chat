@@ -1,24 +1,27 @@
 import 'package:chat/components/mybutton.dart';
 import 'package:chat/components/passtext.dart';
 import 'package:chat/components/textfield.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   final Function()? onTap;
 
   const LoginPage({super.key, required this.onTap});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController _emailCntrl = TextEditingController();
   final TextEditingController passCntrl = TextEditingController();
-  var riveUrl = 'assets/animated_login_character.riv';
+  var riveUrl = 'assets/bunny_login.riv';
   SMITrigger? failTigger;
   SMITrigger? successTigger;
   SMIBool? isHandsup, isChecking;
@@ -38,19 +41,19 @@ class _LoginPageState extends State<LoginPage> {
         final file = RiveFile.import(value);
         final art = file.mainArtboard;
         stateMachineController =
-            StateMachineController.fromArtboard(art, 'Login Machine');
+            StateMachineController.fromArtboard(art, 'State Machine 1');
         if (stateMachineController != null) {
           art.addController(stateMachineController!);
           for (var element in stateMachineController!.inputs) {
-            if (element.name == 'isChecking') {
+            if (element.name == 'isFocus') {
               isChecking = element as SMIBool;
-            } else if (element.name == 'isHandsUp') {
+            } else if (element.name == 'IsPassword') {
               isHandsup = element as SMIBool;
-            } else if (element.name == 'trigFail') {
+            } else if (element.name == 'login_fail') {
               failTigger = element as SMITrigger;
-            } else if (element.name == 'trigSuccess') {
+            } else if (element.name == 'login_success') {
               successTigger = element as SMITrigger;
-            } else if (element.name == 'numLook') {
+            } else if (element.name == 'eye_track') {
               lookNum = element as SMINumber;
             }
           }
@@ -83,26 +86,25 @@ class _LoginPageState extends State<LoginPage> {
     isHandsup?.change(false);
     try {
       successTigger?.fire();
-      Future.delayed(Durations.short4);
+      Future.delayed(
+        Durations.short4,
+      );
       await auth.signInWithEmailAndPassword(_emailCntrl.text, passCntrl.text);
-      // successTigger?.fire();
     } catch (e) {
       failTigger?.fire();
-      showDialog(
-        // ignore: use_build_context_synchronously
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Center(child: Text('Error')),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
           content: Text(e.toString()),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
     setState(() {});
   }
 
-//resets password
   void forgotPassword() async {
     final auth = Authservice();
+    final firestore = FirebaseFirestore.instance;
     String email = _emailCntrl.text.trim();
 
     if (email.isEmpty) {
@@ -113,6 +115,22 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
+      // Check if the email exists in the Firestore users collection
+      final userQuery = await firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        // User not found, show error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No account found with this email.')),
+        );
+        return;
+      }
+
+      // Email exists, proceed to send password reset
       await auth.sendPasswordResetEmail(email);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -139,99 +157,98 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(155, 187, 222, 251),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            // padding: EdgeInsets.all(10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (artboard != null)
-                  SizedBox(
-                    height: 300,
-                    width: 700,
-                    child: Rive(artboard: artboard!),
-                  ),
-                const SizedBox(
-                  height: 10,
+      body: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (artboard != null)
+                SizedBox(
+                  height: 250,
+                  width: 700,
+                  child: Rive(artboard: artboard!),
                 ),
-                Text(
-                  'Welcome back you\'ve been missed',
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontSize: 16),
-                ),
-                const SizedBox(
-                  height: 15,
-                ),
-                MyTextField(
-                  onChanged: moveEyes,
-                  onTap: lookAround,
-                  controller: _emailCntrl,
-                  hintText: 'Email',
-                  obscure: false,
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-                PassText(
-                  obscured: obscured,
-                  onPressed: togglePass,
-                  icon: obscured
-                      ? const Icon(Icons.visibility_off)
-                      : const Icon(Icons.visibility),
-                  controller: passCntrl,
-                  thing: 'Password',
-                  ontap: coverEyes,
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Button(
-                  text: 'Login',
-                  onTap: () {
-                    login(context);
-                  },
-                ),
-                const SizedBox(
-                  height: 15,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Not a Member?'),
-                      const SizedBox(
-                        width: 25,
-                      ),
-                      InkWell(
-                        onTap: widget.onTap,
-                        child: const Text(
-                          'Register now',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15), // Add spacing between elements
-                InkWell(
-                  onTap: forgotPassword, // Call forgotPassword method
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+              const SizedBox(
+                height: 10,
+              ),
+              Text(
+                'Welcome back you\'ve been missed',
+                style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                    fontSize: 16),
+              ),
+              const SizedBox(
+                height: 15,
+              ),
+              MyTextField(
+                onChanged: moveEyes,
+                onTap: lookAround,
+                controller: _emailCntrl,
+                hintText: 'Email',
+                obscure: false,
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              PassText(
+                obscured: obscured,
+                onPressed: togglePass,
+                icon: obscured
+                    ? const Icon(Icons.visibility_off)
+                    : const Icon(Icons.visibility),
+                controller: passCntrl,
+                thing: 'Password',
+                ontap: coverEyes,
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              Button(
+                text: 'Login',
+                onTap: () {
+                  login(context);
+                },
+              ),
+              const SizedBox(
+                height: 15,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Not a Member?'),
+                    const SizedBox(
+                      width: 25,
                     ),
+                    InkWell(
+                      onTap: widget.onTap,
+                      child: const Text(
+                        'Register now',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              const SizedBox(height: 15),
+              InkWell(
+                onTap: forgotPassword,
+                child: Text(
+                  'Forgot Password?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.grey[200] : Colors.grey[900],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

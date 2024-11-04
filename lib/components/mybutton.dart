@@ -1,12 +1,16 @@
+import 'package:chat/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Button extends StatelessWidget {
+class Button extends ConsumerWidget {
   const Button({super.key, required this.text, required this.onTap});
   final String text;
   final Function()? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -18,6 +22,8 @@ class Button extends StatelessWidget {
         child: Center(
           child: Text(
             text,
+            style:
+                TextStyle(color: isDarkMode ? Colors.white : Colors.grey[900]),
           ),
         ),
       ),

@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 
 class UserTile extends StatelessWidget {
-  const UserTile({super.key, required this.text, this.onTap});
+  const UserTile({
+    super.key,
+    required this.text,
+    this.onTap,
+    this.delete, this.block,
+  });
   final String text;
   final Function()? onTap;
+  final Function()? delete;
+    final Function()? block;
+
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: InkWell(
+          onLongPress: delete,
           enableFeedback: true,
           splashColor: Theme.of(context).colorScheme.primary,
           onTap: onTap,

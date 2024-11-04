@@ -1,6 +1,8 @@
+import 'package:chat/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class PassText extends StatefulWidget {
+class PassText extends ConsumerStatefulWidget {
   const PassText({
     super.key,
     required this.controller,
@@ -12,6 +14,7 @@ class PassText extends StatefulWidget {
     this.onChanged,
     this.focusNode,
   });
+
   final TextEditingController controller;
   final String thing;
   final Function() ontap;
@@ -22,41 +25,50 @@ class PassText extends StatefulWidget {
   final Function(String)? onChanged;
 
   @override
-  State<PassText> createState() => _PassTextState();
+  ConsumerState<PassText> createState() => _PassTextState();
 }
 
-class _PassTextState extends State<PassText> {
+class _PassTextState extends ConsumerState<PassText> {
   @override
   Widget build(BuildContext context) {
+    // Watch the theme provider to get the current theme mode
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
+        
         focusNode: widget.focusNode,
         onChanged: widget.onChanged,
         onTap: widget.ontap,
         controller: widget.controller,
         obscureText: widget.obscured,
         decoration: InputDecoration(
-            suffixIcon: IconButton(
-              onPressed: widget.onPressed,
-              icon: widget.icon,
-              padding: EdgeInsets.zero, // Ensure no extra padding
-              constraints: const BoxConstraints(),
+          suffixIcon: IconButton(
+            onPressed: widget.onPressed,
+            icon: widget.icon,
+            padding: EdgeInsets.zero, // No extra padding
+            constraints: const BoxConstraints(),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.tertiary,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderSide:
-                  BorderSide(color: Theme.of(context).colorScheme.tertiary),
-              borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderSide:
-                  BorderSide(color: Theme.of(context).colorScheme.primary),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            fillColor: Theme.of(context).colorScheme.secondary,
-            filled: true,
-            hintText: 'Password',
-            hintStyle: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          fillColor: Theme.of(context).colorScheme.secondary,
+          filled: true,
+          hintText: widget.thing,
+          hintStyle: TextStyle(
+            color: isDarkMode ? Colors.grey : Colors.grey[900],
+          ),
+        ),
       ),
     );
   }

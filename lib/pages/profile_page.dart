@@ -1,20 +1,25 @@
 import 'package:chat/pages/change_pass.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends ConsumerState<ProfilePage> {
   final Authservice _authService = Authservice();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _aboutController =
+      TextEditingController(); // New about controller
   String? userId;
   bool isLoading = true;
 
@@ -35,6 +40,8 @@ class _ProfilePageState extends State<ProfilePage> {
         var data = userDoc.data()!;
         _usernameController.text = data['username'];
         _emailController.text = data['email'];
+        _aboutController.text =
+            data['about'] ?? ''; // Load about data if available
       }
     }
     setState(() {
@@ -59,6 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       await FirebaseFirestore.instance.collection('Users').doc(userId).update({
         'username': _usernameController.text,
+        'about': _aboutController.text, // Save about data
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully')),
@@ -84,11 +92,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 try {
                   User? user = _authService.currentUser();
                   if (user != null) {
-                    await FirebaseFirestore.instance
-                        .collection('Users')
-                        .doc(userId)
-                        .delete(); // Delete user data
-                    await user.delete(); // Delete the user's account
+                    // Delete associated chat rooms and user data, then delete account
+                    await _deleteUserAccount(user.uid);
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Account deleted successfully.')),
@@ -100,6 +106,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.message}')),
                   );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('An unexpected error occurred.')),
+                  );
                 }
               },
               child: const Text('Yes'),
@@ -110,19 +121,55 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Future<void> _deleteUserAccount(String userId) async {
+    // Delete all associated chat rooms
+    QuerySnapshot chatRooms = await FirebaseFirestore.instance
+        .collection('ChatRooms')
+        .where('participants', arrayContains: userId)
+        .get();
+
+    for (var doc in chatRooms.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete user data
+    await FirebaseFirestore.instance.collection('Users').doc(userId).delete();
+
+    // Delete the user's account
+    User? user = _authService.currentUser();
+    await user?.delete();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Lottie.asset(
+                      'assets/Animation - 1730069741511.json',
+                      animate: true,
+                      frameRate: const FrameRate(60),
+                    ),
+                  ),
+                ),
+              ],
+            )
           : Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(25.0),
               child: SingleChildScrollView(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: _usernameController,
@@ -166,6 +213,27 @@ class _ProfilePageState extends State<ProfilePage> {
                       readOnly: true,
                     ),
                     const SizedBox(height: 20),
+                    TextField(
+                      controller: _aboutController,
+                      decoration: InputDecoration(
+                        fillColor: Theme.of(context).colorScheme.secondary,
+                        filled: true,
+                        labelText: 'About',
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Column(
                       children: [
                         const Divider(),
@@ -173,7 +241,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           title: const Text('Change Password'),
                           leading: const Icon(Icons.lock),
                           onTap: () {
-                            // Navigate to the change password page
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                   builder: (context) =>
@@ -189,7 +256,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ListTile(
                           title: const Text('Delete Account'),
                           leading: const Icon(Icons.delete_forever),
-                          onTap: _showDeleteAccountDialog, // Show delete dialog
+                          onTap: _showDeleteAccountDialog,
                         ),
                         const Divider()
                       ],
@@ -197,7 +264,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _updateProfile,
-                      child: const Text('Save Changes'),
+                      child: Text(
+                        'Save Changes',
+                        style: TextStyle(
+                            color:
+                                isDarkMode ? Colors.white : Colors.grey[900]),
+                      ),
                     ),
                   ],
                 ),

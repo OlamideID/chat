@@ -2,13 +2,15 @@ import 'package:chat/components/confirmpass.dart';
 import 'package:chat/components/mybutton.dart';
 import 'package:chat/components/passtext.dart';
 import 'package:chat/components/textfield.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   final Function()? onTap;
 
   const RegisterPage({
@@ -17,143 +19,117 @@ class RegisterPage extends StatefulWidget {
   });
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final TextEditingController _emailCntrl = TextEditingController();
   final TextEditingController usernameCtrl = TextEditingController();
-
   final TextEditingController passCntrl = TextEditingController();
-
   final TextEditingController confirmpassCntrl = TextEditingController();
 
-  var riveUrl = 'assets/animated_login_character.riv';
-  SMITrigger? failTigger, successTigger;
+  var riveUrl = 'assets/login_screen_character.riv';
+  SMITrigger? failTrigger, successTrigger;
   SMIBool? isHandsup, isChecking;
   SMINumber? lookNum;
   StateMachineController? stateMachineController;
   Artboard? artboard;
-  bool obscured = true;
+
+  // Separate obscured states for password and confirm password
+  bool passwordObscured = true;
+  bool confirmPasswordObscured = true;
 
   @override
   void initState() {
     super.initState();
-    rootBundle.load(riveUrl).then((value) {
-      final file = RiveFile.import(value);
-      final art = file.mainArtboard;
-      stateMachineController =
-          StateMachineController.fromArtboard(art, 'Login Machine');
-      if (stateMachineController != null) {
-        art.addController(stateMachineController!);
-        for (var element in stateMachineController!.inputs) {
-          if (element.name == 'isChecking') {
-            isChecking = element as SMIBool;
-          } else if (element.name == 'isHandsUp') {
-            isHandsup = element as SMIBool;
-          } else if (element.name == 'trigSuccess') {
-            failTigger = element as SMITrigger;
-          } else if (element.name == 'numLook') {
-            lookNum = element as SMINumber;
-          }
-          setState(() {
-            artboard = art;
-          });
-        }
-      }
-    });
+    loadRiveFile();
   }
 
-  lookAround() {
+  void loadRiveFile() async {
+    final data = await rootBundle.load(riveUrl);
+    final file = RiveFile.import(data);
+    final art = file.mainArtboard;
+    stateMachineController =
+        StateMachineController.fromArtboard(art, 'State Machine 1');
+    if (stateMachineController != null) {
+      art.addController(stateMachineController!);
+      for (var element in stateMachineController!.inputs) {
+        if (element.name == 'Check') {
+          isChecking = element as SMIBool;
+        } else if (element.name == 'hands_up') {
+          isHandsup = element as SMIBool;
+        } else if (element.name == 'fail') {
+          failTrigger = element as SMITrigger;
+        } else if (element.name == 'success') {
+          successTrigger = element as SMITrigger;
+        } else if (element.name == 'Look') {
+          lookNum = element as SMINumber;
+        }
+      }
+      setState(() => artboard = art);
+    }
+  }
+
+  void lookAround() {
     isChecking?.change(true);
     isHandsup?.change(false);
     lookNum?.change(0);
   }
 
-  moveEyes(value) {
+  void moveEyes(String value) {
     lookNum?.change(value.length.toDouble());
   }
 
-  coverEyes() {
+  void coverEyes() {
     isHandsup?.change(true);
     isChecking?.change(false);
   }
 
-  
-register(BuildContext context) async {
-  final auth = Authservice();
-  final firestore = FirebaseFirestore.instance; // Firestore instance to query usernames
-
-  // Check if username field is empty
-  if (usernameCtrl.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Username cannot be empty',
-          style: TextStyle(color: Theme.of(context).colorScheme.primary),
-        ),
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
-    return;
+  void togglePasswordVisibility() {
+    setState(() {
+      passwordObscured = !passwordObscured;
+      passwordObscured ? coverEyes() : lookAround();
+    });
   }
 
-  // Check if passwords match
-  if (passCntrl.text == confirmpassCntrl.text) {
+  void toggleConfirmPasswordVisibility() {
+    setState(() {
+      confirmPasswordObscured = !confirmPasswordObscured;
+      confirmPasswordObscured ? coverEyes() : lookAround();
+    });
+  }
+
+  Future<void> register(BuildContext context) async {
+    final auth = Authservice();
+    final firestore = FirebaseFirestore.instance;
+
+    if (usernameCtrl.text.isEmpty) {
+      showSnackbar(context, 'Username cannot be empty');
+      return;
+    }
+
+    if (passCntrl.text != confirmpassCntrl.text) {
+      showSnackbar(context, 'Passwords do not match');
+      return;
+    }
+
     try {
-      // Check if the username already exists
-      var querySnapshot = await firestore
+      final querySnapshot = await firestore
           .collection('Users')
           .where('username', isEqualTo: usernameCtrl.text)
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        // If username is taken, show SnackBar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Username is already taken',
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
-            ),
-            duration: const Duration(seconds: 2),
-            action: SnackBarAction(
-              label: 'OK',
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
-          ),
-        );
+        showSnackbar(context, 'Username is already taken');
       } else {
-        // Proceed with registration if the username is available
+        successTrigger?.fire();
         await auth.signUpWithEmailAndUsername(
-            _emailCntrl.text, passCntrl.text, usernameCtrl.text);
-
-        // Show a success SnackBar without sending verification email
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Registration successful! You can now log in.',
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
-            ),
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'OK',
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
-          ),
+          _emailCntrl.text,
+          passCntrl.text,
+          usernameCtrl.text,
         );
 
-        // Optionally, navigate to the login or home screen
-        // Navigator.pushReplacementNamed(context, '/home');
+        showSnackbar(context, 'Registration successful! You can now log in.');
       }
     } catch (e) {
       showDialog(
@@ -164,12 +140,13 @@ register(BuildContext context) async {
         ),
       );
     }
-  } else {
-    // Show error if passwords do not match
+  }
+
+  void showSnackbar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Passwords do not match',
+          message,
           style: TextStyle(color: Theme.of(context).colorScheme.primary),
         ),
         duration: const Duration(seconds: 2),
@@ -182,18 +159,11 @@ register(BuildContext context) async {
       ),
     );
   }
-}
-
-
-  togglePass() {
-    setState(() {
-      obscured = !obscured;
-    });
-    obscured ? coverEyes() : lookAround() && moveEyes(context);
-  }
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(155, 187, 222, 251),
       body: Center(
@@ -202,31 +172,25 @@ register(BuildContext context) async {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(
-                height: 40,
-              ),
+              const SizedBox(height: 40),
               if (artboard != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: SizedBox(
                     height: 300,
-                    width: 700,
-                    child: Rive(
-                      artboard: artboard!,
-                    ),
+                    width: 500,
+                    child: Rive(artboard: artboard!),
                   ),
                 ),
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
               Text(
                 'Let\'s create an account for you',
                 style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary, fontSize: 16),
+                  color: isDarkMode ? Colors.white : Colors.grey[900],
+                  fontSize: 16,
+                ),
               ),
-              const SizedBox(
-                height: 25,
-              ),
+              const SizedBox(height: 25),
               MyTextField(
                 onChanged: moveEyes,
                 onTap: lookAround,
@@ -234,9 +198,7 @@ register(BuildContext context) async {
                 hintText: 'Email',
                 obscure: false,
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
               MyTextField(
                 onChanged: moveEyes,
                 onTap: lookAround,
@@ -244,59 +206,51 @@ register(BuildContext context) async {
                 hintText: 'Username',
                 obscure: false,
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
               PassText(
-                obscured: obscured,
-                onPressed: togglePass,
-                icon: obscured
+                obscured: passwordObscured,
+                onPressed: togglePasswordVisibility,
+                icon: passwordObscured
                     ? const Icon(Icons.visibility_off)
                     : const Icon(Icons.visibility),
                 controller: passCntrl,
                 thing: 'Password',
                 ontap: coverEyes,
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
               ConfirmPass(
-                  ontap: coverEyes,
-                  controller: confirmpassCntrl,
-                  thing: 'Confirm Password'),
-              const SizedBox(
-                height: 10,
+                obscured: confirmPasswordObscured,
+                icon: confirmPasswordObscured
+                    ? const Icon(Icons.visibility_off)
+                    : const Icon(Icons.visibility),
+                onPressed: toggleConfirmPasswordVisibility,
+                ontap: coverEyes,
+                controller: confirmpassCntrl,
+                thing: 'Confirm Password',
               ),
+              const SizedBox(height: 10),
               Button(
                 text: 'Register',
-                onTap: () {
-                  register(context);
-                },
+                onTap: () => register(context),
               ),
-              const SizedBox(
-                height: 15,
-              ),
+              const SizedBox(height: 15),
               Padding(
                 padding: const EdgeInsets.only(right: 20, left: 20, bottom: 50),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text('Already have an account?'),
-                    const SizedBox(
-                      width: 10,
-                    ),
+                    const SizedBox(width: 10),
                     InkWell(
                       onTap: widget.onTap,
                       child: const Text(
                         'Login',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    )
+                    ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),

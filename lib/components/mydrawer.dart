@@ -2,6 +2,7 @@ import 'package:chat/pages/profile_page.dart';
 import 'package:chat/pages/settings.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class Mydrawer extends StatelessWidget {
   const Mydrawer({super.key});
@@ -20,13 +21,10 @@ class Mydrawer extends StatelessWidget {
         children: [
           Column(
             children: [
-              const DrawerHeader(
+              DrawerHeader(
                 child: Center(
-                  child: Icon(
-                    Icons.message,
-                    size: 65,
-                  ),
-                ),
+                    child:
+                        Lottie.asset('assets/Animation - 1730054588410.json')),
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 20),

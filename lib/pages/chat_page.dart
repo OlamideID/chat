@@ -74,25 +74,8 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.video_call)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.call))
-        ],
-        title: Row(
-          children: [
-            CircleAvatar(
-              // backgroundColor: Colors.white,
-              child: Image.asset(
-                'assets/defaultprofile.jpg',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(
-              width: 7,
-            ),
+        title:
             GestureDetector(onTap: widget.ontap, child: Text(widget.receiver)),
-          ],
-        ),
         leading: IconButton(
             onPressed: () {
               Navigator.pop(context);
@@ -131,6 +114,12 @@ class _ChatPageState extends State<ChatPage> {
           );
         }
 
+        if (snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text('No messages yet'),
+          );
+        }
+
         return ListView(
           controller: _scrollController,
           children:
@@ -151,7 +140,12 @@ class _ChatPageState extends State<ChatPage> {
         alignment: alignment,
         child: Column(
           children: [
-            ChatBubble(isCurrentUser: isUser, message: data['message']),
+            ChatBubble(
+              isCurrentUser: isUser,
+              message: data['message'],
+              messageID: doc.id,
+              userID: data['senderID'],
+            ),
           ],
         ));
   }
@@ -169,15 +163,6 @@ class _ChatPageState extends State<ChatPage> {
               controller: _messagectrl,
               onTap: () {},
             ),
-          ),
-          IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.attach_file,
-                size: 30,
-              )),
-          const SizedBox(
-            width: 5,
           ),
           Container(
             height: 40,

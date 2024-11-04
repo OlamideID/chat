@@ -1,6 +1,8 @@
+import 'package:chat/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MyTextField extends StatelessWidget {
+class MyTextField extends ConsumerWidget {
   const MyTextField(
       {super.key,
       required this.hintText,
@@ -17,7 +19,9 @@ class MyTextField extends StatelessWidget {
   final Function(String)? onChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
@@ -39,7 +43,8 @@ class MyTextField extends StatelessWidget {
             fillColor: Theme.of(context).colorScheme.secondary,
             filled: true,
             hintText: hintText,
-            hintStyle: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            hintStyle:
+                TextStyle(color: isDarkMode ? Colors.grey : Colors.black)),
       ),
     );
   }
