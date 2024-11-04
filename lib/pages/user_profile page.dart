@@ -1,5 +1,3 @@
-// ignore_for_file: file_names
-
 import 'package:flutter/material.dart';
 
 class UserProfilePage extends StatelessWidget {
@@ -21,7 +19,6 @@ class UserProfilePage extends StatelessWidget {
         child: Column(
           // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           mainAxisSize: MainAxisSize.min,
-          // mainAxisAlignment: MainAxisAlignment.m,
           children: [
             Text(
               'Username: $username',

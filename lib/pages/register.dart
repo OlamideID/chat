@@ -1,14 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rive/rive.dart';
+
 import 'package:chat/components/confirmpass.dart';
 import 'package:chat/components/mybutton.dart';
 import 'package:chat/components/passtext.dart';
 import 'package:chat/components/textfield.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rive/rive.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   final Function()? onTap;
@@ -91,6 +92,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       passwordObscured ? coverEyes() : lookAround();
     });
   }
+
 
   void toggleConfirmPasswordVisibility() {
     setState(() {

@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:chat/pages/change_pass.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
@@ -59,7 +62,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       if (existingUserDoc.docs.isNotEmpty &&
           existingUserDoc.docs.first.id != userId) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Username is already taken')),
+          const SnackBar(
+            content: Text('Username is already taken'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         return;
       }
@@ -69,25 +75,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         'about': _aboutController.text, // Save about data
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
+        const SnackBar(
+          content: Text('Profile updated successfully'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
 
   void _showDeleteAccountDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
           title: const Text('Delete Account'),
           content: const Text(
               'Are you sure you want to delete your account? This action cannot be undone.'),
           actions: [
-            TextButton(
+            CupertinoDialogAction(
               onPressed: () => Navigator.pop(context), // Close dialog
               child: const Text('No'),
             ),
-            TextButton(
+            CupertinoDialogAction(
               onPressed: () async {
                 try {
                   User? user = _authService.currentUser();
@@ -116,9 +125,54 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               child: const Text('Yes'),
             ),
           ],
-        );
-      },
-    );
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Delete Account'),
+            content: const Text(
+                'Are you sure you want to delete your account? This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), // Close dialog
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    User? user = _authService.currentUser();
+                    if (user != null) {
+                      // Delete associated chat rooms and user data, then delete account
+                      await _deleteUserAccount(user.uid);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Account deleted successfully.')),
+                      );
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pop(context); // Go back to the previous page
+                    }
+                  } on FirebaseAuthException catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.message}')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('An unexpected error occurred.')),
+                    );
+                  }
+                },
+                child: const Text('Yes'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   Future<void> _deleteUserAccount(String userId) async {

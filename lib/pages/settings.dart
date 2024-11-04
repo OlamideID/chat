@@ -31,11 +31,11 @@ class SettingsPage extends ConsumerWidget {
                 ref.read(themeProvider.notifier).toggleTheme(); // Toggle theme
               },
             ),
-            SizedBox(
+            const SizedBox(
               height: 15,
             ),
             ListTile(
-              trailing: Icon(Icons.arrow_forward),
+              trailing: const Icon(Icons.arrow_forward),
               title: const Text('Blocked Users'),
               onTap: () {
                 Navigator.push(

@@ -1,12 +1,13 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:lottie/lottie.dart';
+
 import 'package:chat/components/mydrawer.dart';
 import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:lottie/lottie.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});

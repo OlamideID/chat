@@ -7,7 +7,7 @@ import 'package:lottie/lottie.dart';
 
 class BlockedPage extends ConsumerWidget {
   BlockedPage(this.textStyle, {super.key});
-  final TextStyle textStyle;
+  final TextStyle textStyle; 
   final ChatService chatService = ChatService();
   final Authservice authservice = Authservice();
 
@@ -32,6 +32,7 @@ class BlockedPage extends ConsumerWidget {
               chatService.unblockUser(userId);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                behavior: SnackBarBehavior.floating,
                 content: Text(
                   'You have unblocked $userN',
                 ),
