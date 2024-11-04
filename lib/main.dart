@@ -42,6 +42,9 @@ class MyApp extends ConsumerWidget {
       ],
       // Set a custom list of devices to display in Device Preview
       devices: [
+        Devices.macOS.macBookPro,
+        Devices.linux.laptop,
+        Devices.android.samsungGalaxyA50,
         Devices.android.samsungGalaxyS20,
         Devices.ios.iPhone13ProMax,
         Devices.ios.iPhoneSE,
