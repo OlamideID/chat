@@ -48,6 +48,9 @@ class MyApp extends ConsumerWidget {
         Devices.android.samsungGalaxyS20,
         Devices.ios.iPhone13ProMax,
         Devices.ios.iPhoneSE,
+        Devices.ios.iPhone13Mini,
+        Devices.ios.iPad,
+        
         Devices.windows.laptop,
       ],
       builder: (context) => MaterialApp(
