@@ -1,29 +1,103 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:lottie/lottie.dart';
-
 import 'package:chat/components/mydrawer.dart';
 import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:lottie/lottie.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   HomePage({super.key});
 
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage>
+    with WidgetsBindingObserver, RouteAware {
   final ChatService _chatService = ChatService();
   final Authservice _authservice = Authservice();
+  TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  FocusNode _searchFocusNode = FocusNode();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // This will be called when the user pops back to this screen
+    if (!_searchFocusNode.hasFocus) {
+      // Unfocus the search bar when coming back from another screen
+      _searchFocusNode.unfocus();
+      setState(() {
+        _searchQuery = '';
+        _searchController.clear();// Clear the search query if needed
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.primary,
-        title: const Text('Home'),
+        title: Padding(
+          padding: const EdgeInsets.only(right: 70),
+          child: Center(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  // Focus on the search bar when tapped
+                  FocusScope.of(context).requestFocus(_searchFocusNode);
+                },
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search...',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: _buildUser(),
       drawer: const Mydrawer(),
@@ -31,10 +105,7 @@ class HomePage extends StatelessWidget {
   }
 
   _showDeleteMessage(
-    BuildContext context,
-    String otherUserId,
-    String username,
-  ) {
+      BuildContext context, String otherUserId, String username) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -148,7 +219,7 @@ class HomePage extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No  other users found'));
+          return const Center(child: Text('No other users found'));
         }
 
         var users = snapshot.data!
@@ -157,19 +228,33 @@ class HomePage extends StatelessWidget {
                 userData["isDeleted"] != true)
             .toList();
 
+        // Filter users based on the search query
+        if (_searchQuery.isNotEmpty) {
+          users = users.where((userData) {
+            return userData["username"]
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase());
+          }).toList();
+        }
+
         if (users.isEmpty) {
-          return const Center(child: Text('No other users available'));
+          return const Center(child: Text('No matching users found'));
         }
 
         return AnimationLimiter(
           child: ListView.builder(
             itemCount: users.length,
             itemBuilder: (context, index) {
+              // Alternate direction for slide animation (left to right, right to left)
+              final slideDirection =
+                  index.isEven ? Offset(1.0, 0.0) : Offset(-1.0, 0.0);
+
               return AnimationConfiguration.staggeredList(
                 position: index,
                 duration: const Duration(milliseconds: 500),
                 child: SlideAnimation(
-                  verticalOffset: 50.0,
+                  horizontalOffset:
+                      slideDirection.dx * 50.0, // Move 50 pixels horizontally
                   child: FadeInAnimation(
                     child: _buildUserItem(users[index], context),
                   ),
@@ -210,7 +295,7 @@ class HomePage extends StatelessWidget {
                 return FadeTransition(opacity: animation, child: child);
               },
             ),
-          );
+          ).then((_) => didPopNext());
         },
       );
     } else {
@@ -223,39 +308,12 @@ class LoadingAnimation extends StatefulWidget {
   const LoadingAnimation({super.key});
 
   @override
-  _LoadingAnimationState createState() => _LoadingAnimationState();
+  State<LoadingAnimation> createState() => _LoadingAnimationState();
 }
 
-class _LoadingAnimationState extends State<LoadingAnimation>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _LoadingAnimationState extends State<LoadingAnimation> {
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _controller,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Lottie.asset('assets/Animation - 1730069741511.json',
-              height: 100, width: 200),
-        ],
-      ),
-    );
+    return Lottie.asset('assets/Animation - 1730069741511.json', height: 150, width: 150);
   }
 }

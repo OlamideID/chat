@@ -21,8 +21,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   final Authservice _authService = Authservice();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _aboutController =
-      TextEditingController(); // New about controller
+  final TextEditingController _aboutController = TextEditingController(); // New about controller
   String? userId;
   bool isLoading = true;
 
@@ -43,8 +42,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         var data = userDoc.data()!;
         _usernameController.text = data['username'];
         _emailController.text = data['email'];
-        _aboutController.text =
-            data['about'] ?? ''; // Load about data if available
+        _aboutController.text = data['about'] ?? ''; // Load about data if available
       }
     }
     setState(() {
@@ -98,29 +96,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             CupertinoDialogAction(
               onPressed: () async {
-                try {
-                  User? user = _authService.currentUser();
-                  if (user != null) {
-                    // Delete associated chat rooms and user data, then delete account
-                    await _deleteUserAccount(user.uid);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Account deleted successfully.')),
-                    );
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Go back to the previous page
-                  }
-                } on FirebaseAuthException catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${e.message}')),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('An unexpected error occurred.')),
-                  );
-                }
+                await _deleteAccount();
               },
               child: const Text('Yes'),
             ),
@@ -142,35 +118,37 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               TextButton(
                 onPressed: () async {
-                  try {
-                    User? user = _authService.currentUser();
-                    if (user != null) {
-                      // Delete associated chat rooms and user data, then delete account
-                      await _deleteUserAccount(user.uid);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Account deleted successfully.')),
-                      );
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Go back to the previous page
-                    }
-                  } on FirebaseAuthException catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: ${e.message}')),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('An unexpected error occurred.')),
-                    );
-                  }
+                  await _deleteAccount();
                 },
                 child: const Text('Yes'),
               ),
             ],
           );
         },
+      );
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    try {
+      User? user = _authService.currentUser();
+      if (user != null) {
+        // Delete associated chat rooms and user data, then delete account
+        await _deleteUserAccount(user.uid);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account deleted successfully.')),
+        );
+        Navigator.pop(context); // Close dialog
+        Navigator.pop(context); // Go back to the previous page
+      }
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.message}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An unexpected error occurred.')),
       );
     }
   }
@@ -203,132 +181,136 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         title: const Text('Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: isLoading
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  height: 100,
-                  child: Center(
-                    child: Lottie.asset(
-                      'assets/Animation - 1730069741511.json',
-                      animate: true,
-                      frameRate: const FrameRate(60),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : Padding(
-              padding: const EdgeInsets.all(25.0),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _usernameController,
-                      decoration: InputDecoration(
-                        fillColor: Theme.of(context).colorScheme.secondary,
-                        filled: true,
-                        labelText: 'Username',
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.tertiary,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        filled: true,
-                        labelText: 'Email',
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.tertiary,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _aboutController,
-                      decoration: InputDecoration(
-                        fillColor: Theme.of(context).colorScheme.secondary,
-                        filled: true,
-                        labelText: 'About',
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.tertiary,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Column(
-                      children: [
-                        const Divider(),
-                        ListTile(
-                          title: const Text('Change Password'),
-                          leading: const Icon(Icons.lock),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ChangePasswordPage()),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        const Divider(),
-                        ListTile(
-                          title: const Text('Delete Account'),
-                          leading: const Icon(Icons.delete_forever),
-                          onTap: _showDeleteAccountDialog,
-                        ),
-                        const Divider()
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _updateProfile,
-                      child: Text(
-                        'Save Changes',
-                        style: TextStyle(
-                            color:
-                                isDarkMode ? Colors.white : Colors.grey[900]),
-                      ),
-                    ),
-                  ],
+      body: AnimatedOpacity(
+        opacity: isLoading ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 500),
+        child: isLoading
+            ? Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: 100,
+              child: Center(
+                child: Lottie.asset(
+                  'assets/Animation - 1730069741511.json',
+                  animate: true,
+                  frameRate: const FrameRate(60),
                 ),
               ),
             ),
+          ],
+        )
+            : Padding(
+          padding: const EdgeInsets.all(25.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _usernameController,
+                  decoration: InputDecoration(
+                    fillColor: Theme.of(context).colorScheme.secondary,
+                    filled: true,
+                    labelText: 'Username',
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    filled: true,
+                    labelText: 'Email',
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _aboutController,
+                  decoration: InputDecoration(
+                    fillColor: Theme.of(context).colorScheme.secondary,
+                    filled: true,
+                    labelText: 'About',
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Column(
+                  children: [
+                    const Divider(),
+                    ListTile(
+                      title: const Text('Change Password'),
+                      leading: const Icon(Icons.lock),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) =>
+                              const ChangePasswordPage()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    const Divider(),
+                    ListTile(
+                      title: const Text('Delete Account'),
+                      leading: const Icon(Icons.delete_forever),
+                      onTap: _showDeleteAccountDialog,
+                    ),
+                    const Divider()
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _updateProfile,
+                  child: Text(
+                    'Save Changes',
+                    style: TextStyle(
+                        color:
+                        isDarkMode ? Colors.white : Colors.grey[900]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
