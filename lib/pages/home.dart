@@ -2,7 +2,6 @@ import 'package:chat/components/mydrawer.dart';
 import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
-import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,7 @@ class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver, RouteAware {
   final ChatService _chatService = ChatService();
   final Authservice _authservice = Authservice();
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final FocusNode _searchFocusNode = FocusNode();
 
