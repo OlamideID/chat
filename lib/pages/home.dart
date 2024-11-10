@@ -2,6 +2,7 @@ import 'package:chat/components/mydrawer.dart';
 import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:flutter/material.dart';
@@ -39,20 +40,18 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   void didPopNext() {
-    // This will be called when the user pops back to this screen
     if (!_searchFocusNode.hasFocus) {
-      // Unfocus the search bar when coming back from another screen
       _searchFocusNode.unfocus();
       setState(() {
         _searchQuery = '';
-        _searchController.clear(); // Clear the search query if needed
+        _searchController.clear();
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -63,8 +62,10 @@ class _HomePageState extends ConsumerState<HomePage>
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
+                color: isDarkMode
+                    ? Colors.grey[800]
+                    : Colors.white, // Dark mode color
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.2),
@@ -75,7 +76,6 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
               child: GestureDetector(
                 onTap: () {
-                  // Focus on the search bar when tapped
                   FocusScope.of(context).requestFocus(_searchFocusNode);
                 },
                 child: TextField(
@@ -88,8 +88,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   },
                   decoration: InputDecoration(
                     hintText: 'Search...',
-                    hintStyle: const TextStyle(
-                        color: Colors.black),
+                    hintStyle: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black),
                     prefixIcon: Icon(
                       Icons.search,
                       color: Theme.of(context).colorScheme.primary,
@@ -97,6 +97,8 @@ class _HomePageState extends ConsumerState<HomePage>
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
+                  style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black),
                 ),
               ),
             ),
@@ -170,15 +172,14 @@ class _HomePageState extends ConsumerState<HomePage>
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
-                await ChatService()
-                    .deleteAllMessages(otherUserID); // Call the delete function
-                Navigator.of(context).pop(); // Close the dialog after deletion
+                await ChatService().deleteAllMessages(otherUserID);
+                Navigator.of(context).pop();
               },
               child: const Text('Delete'),
             ),
@@ -232,7 +233,6 @@ class _HomePageState extends ConsumerState<HomePage>
                 userData["isDeleted"] != true)
             .toList();
 
-        // Filter users based on the search query
         if (_searchQuery.isNotEmpty) {
           users = users.where((userData) {
             return userData["username"]
@@ -249,7 +249,6 @@ class _HomePageState extends ConsumerState<HomePage>
           child: ListView.builder(
             itemCount: users.length,
             itemBuilder: (context, index) {
-              // Alternate direction for slide animation (left to right, right to left)
               final slideDirection =
                   index.isEven ? Offset(1.0, 0.0) : Offset(-1.0, 0.0);
 
@@ -257,8 +256,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 position: index,
                 duration: const Duration(milliseconds: 500),
                 child: SlideAnimation(
-                  horizontalOffset:
-                      slideDirection.dx * 50.0, // Move 50 pixels horizontally
+                  horizontalOffset: slideDirection.dx * 50.0,
                   child: FadeInAnimation(
                     child: _buildUserItem(users[index], context),
                   ),
