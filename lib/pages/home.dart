@@ -89,8 +89,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   },
                   decoration: InputDecoration(
                     hintText: 'Search...',
-                    hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black),
+                    hintStyle: const TextStyle(
+                        color: Colors.black),
                     prefixIcon: Icon(
                       Icons.search,
                       color: Theme.of(context).colorScheme.primary,
