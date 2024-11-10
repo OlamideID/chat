@@ -2,26 +2,28 @@ import 'package:chat/components/mydrawer.dart';
 import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:lottie/lottie.dart';
 
-class HomePage extends StatefulWidget {
-  HomePage({super.key});
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
+class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver, RouteAware {
   final ChatService _chatService = ChatService();
   final Authservice _authservice = Authservice();
   TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -44,13 +46,15 @@ class _HomePageState extends State<HomePage>
       _searchFocusNode.unfocus();
       setState(() {
         _searchQuery = '';
-        _searchController.clear();// Clear the search query if needed
+        _searchController.clear(); // Clear the search query if needed
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -85,7 +89,8 @@ class _HomePageState extends State<HomePage>
                   },
                   decoration: InputDecoration(
                     hintText: 'Search...',
-                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    hintStyle: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black),
                     prefixIcon: Icon(
                       Icons.search,
                       color: Theme.of(context).colorScheme.primary,
@@ -314,6 +319,7 @@ class LoadingAnimation extends StatefulWidget {
 class _LoadingAnimationState extends State<LoadingAnimation> {
   @override
   Widget build(BuildContext context) {
-    return Lottie.asset('assets/Animation - 1730069741511.json', height: 150, width: 150);
+    return Lottie.asset('assets/Animation - 1730069741511.json',
+        height: 150, width: 150);
   }
 }
