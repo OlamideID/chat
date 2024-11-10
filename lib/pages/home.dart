@@ -53,7 +53,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    // final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
