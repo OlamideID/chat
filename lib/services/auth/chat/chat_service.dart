@@ -5,6 +5,7 @@ import 'package:chat/models/message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img; // Import the image package
 
 class ChatService {
@@ -178,7 +179,9 @@ class ChatService {
           .collection('messages')
           .add(imgMessage.toMap());
     } catch (e) {
-      print("Error sending image: $e");
+      if (kDebugMode) {
+        print("Error sending image: $e");
+      }
       throw Exception("Error sending image");
     }
   }

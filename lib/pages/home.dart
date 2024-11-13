@@ -24,6 +24,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchActive = false; // Track if the search bar is active
 
   @override
   void initState() {
@@ -40,11 +41,13 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   void didPopNext() {
+    // Reset the search bar when coming back to the HomePage
     if (!_searchFocusNode.hasFocus) {
       _searchFocusNode.unfocus();
       setState(() {
-        _searchQuery = '';
-        _searchController.clear();
+        _isSearchActive = false; // Set search bar to inactive
+        _searchQuery = ''; // Clear search query
+        _searchController.clear(); // Clear search input
       });
     }
   }
@@ -57,53 +60,82 @@ class _HomePageState extends ConsumerState<HomePage>
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.primary,
-        title: Padding(
-          padding: const EdgeInsets.only(right: 70),
-          child: Center(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? Colors.grey[800]
-                    : Colors.white, // Dark mode color
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ],
+        title: AnimatedSwitcher(
+          duration: const Duration(
+              milliseconds: 500), // Adjusted duration for smoother transition
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            // Use a smooth fade and scale transition
+            return FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween(begin: 0.9, end: 1.0).animate(animation),
+                child: child,
               ),
-              child: GestureDetector(
-                onTap: () {
-                  FocusScope.of(context).requestFocus(_searchFocusNode);
-                },
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search...',
-                    hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Theme.of(context).colorScheme.primary,
+            );
+          },
+          child: _isSearchActive
+              ? Container(
+                  key: ValueKey<bool>(_isSearchActive),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.grey[800] : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      FocusScope.of(context).requestFocus(_searchFocusNode);
+                    },
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search...',
+                        hintStyle: TextStyle(
+                            color: isDarkMode ? Colors.white70 : Colors.black),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black),
                     ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black),
+                )
+              : Text(
+                  'HOME',
+                  key: ValueKey<bool>(_isSearchActive),
                 ),
-              ),
-            ),
-          ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearchActive ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _isSearchActive = !_isSearchActive;
+                if (!_isSearchActive) {
+                  _searchFocusNode.unfocus();
+                  _searchQuery = '';
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+        ],
       ),
       body: _buildUser(),
       drawer: const Mydrawer(),
@@ -249,8 +281,9 @@ class _HomePageState extends ConsumerState<HomePage>
           child: ListView.builder(
             itemCount: users.length,
             itemBuilder: (context, index) {
-              final slideDirection =
-                  index.isEven ? Offset(1.0, 0.0) : Offset(-1.0, 0.0);
+              final slideDirection = index.isEven
+                  ? const Offset(1.0, 0.0)
+                  : const Offset(-1.0, 0.0);
 
               return AnimationConfiguration.staggeredList(
                 position: index,
@@ -297,7 +330,9 @@ class _HomePageState extends ConsumerState<HomePage>
                 return FadeTransition(opacity: animation, child: child);
               },
             ),
-          ).then((_) => didPopNext());
+          ).then((_) {
+            return ();
+          });
         },
       );
     } else {

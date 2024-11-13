@@ -87,7 +87,10 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: <Widget>[
           Expanded(child: _buildMessageList()),
-          _buildUserInput(context)
+          UserInputField(onSendMessage: (message) async {
+            await chat.sendMessage(widget.receiverID, message);
+            scrollDown();
+          }),
         ],
       ),
     );
@@ -153,8 +156,38 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ));
   }
+}
 
-  Widget _buildUserInput(BuildContext context) {
+class UserInputField extends StatefulWidget {
+  final Function(String message) onSendMessage;
+
+  const UserInputField({super.key, required this.onSendMessage});
+
+  @override
+  State<UserInputField> createState() => _UserInputFieldState();
+}
+
+class _UserInputFieldState extends State<UserInputField> {
+  final TextEditingController _messageController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    if (_messageController.text.isNotEmpty) {
+      widget.onSendMessage(_messageController.text);
+      _messageController.clear();
+      setState(() {}); // Update to hide the send button
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
@@ -164,26 +197,31 @@ class _ChatPageState extends State<ChatPage> {
               focusNode: _focusNode,
               hintText: 'Type a message',
               obscure: false,
-              controller: _messagectrl,
+              controller: _messageController,
+              onChanged: (text) {
+                setState(() {}); // Trigger rebuild to show/hide send button
+              },
               onTap: () {},
             ),
           ),
-          Container(
-            height: 40,
-            width: 40,
-            margin: const EdgeInsets.only(right: 20),
-            decoration:
-                BoxDecoration(color: Colors.blue[700], shape: BoxShape.circle),
-            child: Center(
-              child: IconButton(
+          if (_messageController.text.isNotEmpty)
+            Container(
+              height: 40,
+              width: 40,
+              margin: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                  color: Colors.blue[700], shape: BoxShape.circle),
+              child: Center(
+                child: IconButton(
                   onPressed: _sendMessage,
                   icon: Icon(
-                    Icons.send,
+                    Icons.arrow_upward_outlined,
                     size: 20,
                     color: Theme.of(context).colorScheme.primary,
-                  )),
+                  ),
+                ),
+              ),
             ),
-          )
         ],
       ),
     );
