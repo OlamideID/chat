@@ -24,9 +24,10 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messagectrl = TextEditingController();
 
   final ChatService chat = ChatService();
-
   final Authservice auth = Authservice();
   final FocusNode _focusNode = FocusNode();
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -39,28 +40,20 @@ class _ChatPageState extends State<ChatPage> {
         );
       }
     });
-
-    Future.delayed(
-      const Duration(milliseconds: 500),
-      () => scrollDown(),
-    );
   }
 
   @override
   void dispose() {
     _focusNode.dispose();
     _messagectrl.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
-
-  final ScrollController _scrollController = ScrollController();
 
   scrollDown() {
     _scrollController.animateTo(_scrollController.position.maxScrollExtent,
         duration: const Duration(seconds: 2), curve: Curves.fastOutSlowIn);
   }
-
-  //final callService = CallService();
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +71,12 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: <Widget>[
           Expanded(child: _buildMessageList()),
-          UserInputField(onSendMessage: (message) async {
-            await chat.sendMessage(widget.receiverID, message);
-            scrollDown();
-          }),
+          UserInputField(
+            onSendMessage: (message) async {
+              await chat.sendMessage(widget.receiverID, message);
+              scrollDown();
+            },
+          ),
         ],
       ),
     );
@@ -167,10 +162,13 @@ class _UserInputFieldState extends State<UserInputField> {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void dispose() {
     _messageController.dispose();
     _focusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -182,8 +180,6 @@ class _UserInputFieldState extends State<UserInputField> {
       scrollDown();
     }
   }
-
-  final ScrollController _scrollController = ScrollController();
 
   scrollDown() {
     _scrollController.animateTo(_scrollController.position.maxScrollExtent,
