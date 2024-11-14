@@ -162,13 +162,10 @@ class _UserInputFieldState extends State<UserInputField> {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  final ScrollController _scrollController = ScrollController();
-
   @override
   void dispose() {
     _messageController.dispose();
     _focusNode.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -177,13 +174,7 @@ class _UserInputFieldState extends State<UserInputField> {
       widget.onSendMessage(_messageController.text);
       _messageController.clear();
       setState(() {}); // Update to hide the send button
-      scrollDown();
     }
-  }
-
-  scrollDown() {
-    _scrollController.animateTo(_scrollController.position.maxScrollExtent,
-        duration: const Duration(seconds: 1), curve: Curves.fastOutSlowIn);
   }
 
   @override
