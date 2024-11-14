@@ -57,19 +57,10 @@ class _ChatPageState extends State<ChatPage> {
 
   scrollDown() {
     _scrollController.animateTo(_scrollController.position.maxScrollExtent,
-        duration: const Duration(seconds: 1), curve: Curves.fastOutSlowIn);
+        duration: const Duration(seconds: 2), curve: Curves.fastOutSlowIn);
   }
 
   //final callService = CallService();
-
-  _sendMessage() async {
-    if (_messagectrl.text.isNotEmpty) {
-      await chat.sendMessage(widget.receiverID, _messagectrl.text);
-
-      _messagectrl.clear();
-    }
-    scrollDown();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +118,11 @@ class _ChatPageState extends State<ChatPage> {
           );
         }
 
+        // Scroll down when new messages arrive
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          scrollDown();
+        });
+
         return ListView(
           controller: _scrollController,
           children:
@@ -183,7 +179,15 @@ class _UserInputFieldState extends State<UserInputField> {
       widget.onSendMessage(_messageController.text);
       _messageController.clear();
       setState(() {}); // Update to hide the send button
+      scrollDown();
     }
+  }
+
+  final ScrollController _scrollController = ScrollController();
+
+  scrollDown() {
+    _scrollController.animateTo(_scrollController.position.maxScrollExtent,
+        duration: const Duration(seconds: 1), curve: Curves.fastOutSlowIn);
   }
 
   @override
