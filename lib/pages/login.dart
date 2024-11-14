@@ -106,7 +106,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       failTigger?.fire();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(
+            e.toString(),
+            style: TextStyle(),
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
