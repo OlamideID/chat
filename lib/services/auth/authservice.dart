@@ -2,24 +2,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class Authservice {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _store = FirebaseFirestore.instance;
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseFirestore store = FirebaseFirestore.instance;
 
   User? currentUser() {
-    return _auth.currentUser;
+    return auth.currentUser;
   }
 
   Future<UserCredential> signInWithEmailAndPassword(
       String email, String password) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      UserCredential userCredential = await auth.signInWithEmailAndPassword(
           email: email, password: password);
 
       DocumentSnapshot userDoc =
-          await _store.collection('Users').doc(userCredential.user!.uid).get();
+          await store.collection('Users').doc(userCredential.user!.uid).get();
 
       if (!userDoc.exists) {
-        await _store.collection('Users').doc(userCredential.user!.uid).set({
+        await store.collection('Users').doc(userCredential.user!.uid).set({
           'uid': userCredential.user!.uid,
           'email': email,
         });
@@ -38,12 +38,12 @@ class Authservice {
   }
 
   Future<void> signOut() async {
-    return await _auth.signOut();
+    return await auth.signOut();
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      await auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       throw Exception(
           e.message ?? 'An unknown error occurred while sending reset email.');
@@ -53,7 +53,7 @@ class Authservice {
   Future<UserCredential> signUpWithEmailAndUsername(
       String email, String password, String username) async {
     try {
-      QuerySnapshot result = await _store
+      QuerySnapshot result = await store
           .collection('Users')
           .where('username', isEqualTo: username)
           .get();
@@ -62,10 +62,10 @@ class Authservice {
         throw Exception('Username is already taken.');
       }
 
-      UserCredential userCredential = await _auth
+      UserCredential userCredential = await auth
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      await _store.collection('Users').doc(userCredential.user!.uid).set({
+      await store.collection('Users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'email': email,
         'username': username,

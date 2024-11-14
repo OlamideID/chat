@@ -1,4 +1,5 @@
 import 'package:chat/pages/profile_page.dart';
+import 'package:chat/pages/reviews.dart';
 import 'package:chat/pages/settings.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:flutter/material.dart';
@@ -69,6 +70,25 @@ class Mydrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const ProfilePage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(
+                height: 12,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: ListTile(
+                  title: const Text('R E V I E W S'),
+                  leading: const Icon(Icons.reviews),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReviewPage(),
                       ),
                     );
                   },

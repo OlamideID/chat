@@ -50,10 +50,10 @@ class MyApp extends ConsumerWidget {
         Devices.ios.iPhoneSE,
         Devices.ios.iPhone13Mini,
         Devices.ios.iPad,
-        
         Devices.windows.laptop,
       ],
       builder: (context) => MaterialApp(
+        // ignore: deprecated_member_use
         useInheritedMediaQuery: true,
         locale: DevicePreview.locale(context),
         builder: DevicePreview.appBuilder,
