@@ -30,6 +30,7 @@ class MyTextField extends ConsumerWidget {
         onTap: onTap,
         controller: controller,
         obscureText: obscure,
+        cursorColor: isDarkMode ? Colors.white : Colors.black,
         decoration: InputDecoration(
             enabledBorder: OutlineInputBorder(
                 borderSide:
