@@ -4,6 +4,7 @@ import 'package:chat/components/textfield.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,12 +67,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   // Future<void> getDeviceToken() async {
-  //   String? token = await FirebaseMessaging.instance.getToken();
-  //   if (token != null) {
-  //     debugPrint("Device Token: $token"); // Log the token for testing
-  //     // ScaffoldMessenger.of(context).showSnackBar(
-  //     //   SnackBar(content: Text('Device Token: $token')),
-  //     // );
+  //   try {
+  //     String? token = await FirebaseMessaging.instance.getToken();
+  //     if (token != null) {
+  //       debugPrint("Device Token: $token"); // Log the token for testing
+  //       // Display the token in the UI only if the widget is mounted
+  //       if (mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Text(
+  //               'Device Token: $token',
+  //             ),
+  //             behavior: SnackBarBehavior.floating,
+  //           ),
+  //         );
+  //       }
+  //     }
+  //   } catch (e) {
+  //     debugPrint("Error fetching token: $e");
   //   }
   // }
 
@@ -103,6 +116,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await auth.signInWithEmailAndPassword(_emailCntrl.text, passCntrl.text);
     } catch (e) {
       failTigger?.fire();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
