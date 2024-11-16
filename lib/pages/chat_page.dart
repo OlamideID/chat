@@ -170,8 +170,8 @@ class _UserInputFieldState extends State<UserInputField> {
   }
 
   void _sendMessage() {
-    if (_messageController.text.isNotEmpty) {
-      widget.onSendMessage(_messageController.text);
+    if (_messageController.text.trim().isNotEmpty) {
+      widget.onSendMessage(_messageController.text.trim());
       _messageController.clear();
       setState(() {}); // Update to hide the send button
     }
@@ -189,13 +189,16 @@ class _UserInputFieldState extends State<UserInputField> {
               hintText: 'Type a message',
               obscure: false,
               controller: _messageController,
+              keyboardtype: TextInputType.multiline, // Allow multi-line input
+              maxLines: null, // Expand to accommodate new lines
               onChanged: (text) {
                 setState(() {}); // Trigger rebuild to show/hide send button
               },
               onTap: () {},
+              // onSubmitted: (_) {}, // Override onSubmitted to prevent submission
             ),
           ),
-          if (_messageController.text.isNotEmpty)
+          if (_messageController.text.trim().isNotEmpty)
             Container(
               height: 40,
               width: 40,

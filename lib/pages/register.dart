@@ -203,6 +203,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               ),
               const SizedBox(height: 10),
               MyTextField(
+                
                 onChanged: moveEyes,
                 onTap: lookAround,
                 controller: usernameCtrl,

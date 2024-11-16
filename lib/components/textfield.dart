@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MyTextField extends ConsumerWidget {
-  const MyTextField(
+  const MyTextField(  
       {super.key,
+      this.maxLines,
+      this.keyboardtype,
       required this.hintText,
       required this.obscure,
       required this.controller,
@@ -17,6 +19,8 @@ class MyTextField extends ConsumerWidget {
   final TextEditingController controller;
   final Function() onTap;
   final Function(String)? onChanged;
+  final TextInputType? keyboardtype;
+  final int? maxLines;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,11 +29,13 @@ class MyTextField extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
+        maxLines: maxLines,
         focusNode: focusNode,
         onChanged: onChanged,
         onTap: onTap,
         controller: controller,
         obscureText: obscure,
+        keyboardType: keyboardtype,
         cursorColor: isDarkMode ? Colors.white : Colors.black,
         decoration: InputDecoration(
             enabledBorder: OutlineInputBorder(
