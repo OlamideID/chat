@@ -124,6 +124,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } catch (e) {
       failTigger?.fire();
 
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -159,6 +160,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (userQuery.docs.isEmpty) {
         // User not found, show error
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No account found with this email.')),
         );
@@ -167,11 +169,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       // Email exists, proceed to send password reset
       await auth.sendPasswordResetEmail(email);
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Password reset email sent! Check your inbox.')),
       );
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
@@ -238,7 +242,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 controller: passCntrl,
                 thing: 'Password',
                 ontap: coverEyes,
-                focusNode: _passwordFocusNode, // Attach focus node here
               ),
               const SizedBox(
                 height: 20,
