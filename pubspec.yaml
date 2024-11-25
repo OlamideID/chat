@@ -55,6 +55,12 @@ dependencies:
   googleapis_auth: ^1.6.0
   flutter_local_notifications: ^18.0.1
   http: ^1.2.2
+  supabase_flutter: ^2.8.0
+  google_nav_bar: ^5.0.7
+
+  firebase_database: ^11.1.6
+  curved_labeled_navigation_bar: ^2.0.5
+  flutter_floating_bottom_bar: ^1.2.1+1
 dev_dependencies:
   flutter_test:
     sdk: flutter

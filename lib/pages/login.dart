@@ -1,10 +1,9 @@
 import 'package:chat/components/mybutton.dart';
 import 'package:chat/components/passtext.dart';
-import 'package:chat/components/textfield.dart';
+import 'package:chat/components/textfield2.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +30,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Artboard? artboard;
 
   bool obscured = true;
+  final FocusNode _passwordFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -63,6 +63,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           artboard = art;
         });
       });
+    });
+    _passwordFocusNode.addListener(() {
+      if (_passwordFocusNode.hasFocus) {
+        lookAround(); // Call lookAround when the password field is focused
+      } else {
+        coverEyes(); // Call coverEyes when the password field loses focus
+      }
     });
   }
 
@@ -212,7 +219,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               const SizedBox(
                 height: 15,
               ),
-              MyTextField(
+              Textfield2(
                 onChanged: moveEyes,
                 onTap: lookAround,
                 controller: _emailCntrl,
@@ -231,6 +238,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 controller: passCntrl,
                 thing: 'Password',
                 ontap: coverEyes,
+                focusNode: _passwordFocusNode, // Attach focus node here
               ),
               const SizedBox(
                 height: 20,

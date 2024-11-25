@@ -79,9 +79,9 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text('Reviews'),
-        backgroundColor:
-            isDarkMode ? Colors.deepPurple.shade700 : Colors.deepPurple,
+        backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.grey,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -93,7 +93,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.deepPurple,
+                color: isDarkMode ? Colors.white : Colors.grey[900],
               ),
             ),
             const SizedBox(height: 12),
@@ -122,9 +122,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
                 onPressed: _addReview,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: isDarkMode ? Colors.black : Colors.white,
-                  backgroundColor: isDarkMode
-                      ? Colors.deepPurple.shade700
-                      : Colors.deepPurple,
+                  backgroundColor: isDarkMode ? Colors.grey : Colors.grey[600],
                   padding:
                       const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -144,7 +142,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.deepPurple,
+                color: isDarkMode ? Colors.grey : Colors.black,
               ),
             ),
             const SizedBox(height: 8),

@@ -1,7 +1,7 @@
 import 'package:chat/components/confirmpass.dart';
 import 'package:chat/components/mybutton.dart';
 import 'package:chat/components/passtext.dart';
-import 'package:chat/components/textfield.dart';
+import 'package:chat/components/textfield2.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -194,7 +194,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 ),
               ),
               const SizedBox(height: 25),
-              MyTextField(
+              Textfield2(
                 onChanged: moveEyes,
                 onTap: lookAround,
                 controller: _emailCntrl,
@@ -202,8 +202,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 obscure: false,
               ),
               const SizedBox(height: 10),
-              MyTextField(
-                
+              Textfield2(
                 onChanged: moveEyes,
                 onTap: lookAround,
                 controller: usernameCtrl,

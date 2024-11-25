@@ -1,22 +1,25 @@
 import 'package:chat/components/new_textfield.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChangePasswordPage extends StatefulWidget {
+class ChangePasswordPage extends ConsumerStatefulWidget {
   const ChangePasswordPage({super.key});
 
   @override
-  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+  ConsumerState<ChangePasswordPage> createState() => _ChangePasswordPageState();
 }
 
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
+class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _currentPasswordController =
       TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  bool _isNewPasswordVisible = false; // For new password visibility
-  bool _isCurrentPasswordVisible = false; // For current password visibility
+  bool _isNewPasswordVisible = false;
+  bool _isCurrentPasswordVisible = false;
+  String? _errorMessage; // To display error messages
 
   void _toggleNewPasswordVisibility() {
     setState(() {
@@ -39,64 +42,50 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text('Reauthenticate'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min, // Adjust size to fit content
-              children: [
-                NewPass(
+            title: const Text(
+              'Reauthenticate',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  NewPass(
                     controller: _currentPasswordController,
                     thing: 'Current Password',
-                    ontap: _toggleCurrentPasswordVisibility),
-                const SizedBox(height: 20),
-                NewPass(
+                    ontap: _toggleCurrentPasswordVisibility,
+                  ),
+                  const SizedBox(height: 20),
+                  NewPass(
                     controller: _newPasswordController,
                     thing: 'New Password',
-                    ontap: _toggleNewPasswordVisibility)
-              ],
+                    ontap: _toggleNewPasswordVisibility,
+                  ),
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10.0),
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(color: Colors.red[600]),
+                      ),
+                    ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () {
-                  _currentPasswordController.clear();
-                  _newPasswordController.clear();
-
+                  _clearControllers();
                   Navigator.pop(context);
-                }, // Close dialog
-                child: const Text('Cancel'),
+                },
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () async {
-                  try {
-                    // Reauthenticate the user
-                    AuthCredential credential = EmailAuthProvider.credential(
-                      email: user.email!,
-                      password: _currentPasswordController.text,
-                    );
-                    await user.reauthenticateWithCredential(credential);
-
-                    // Update the password
-                    await user.updatePassword(_newPasswordController.text);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Password updated successfully')),
-                    );
-                    _currentPasswordController.clear();
-                    _newPasswordController.clear();
-
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Go back to the previous page
-                  } on FirebaseAuthException catch (e) {
-                    if (e.code == 'wrong-password') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Wrong password provided')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: ${e.message}')),
-                      );
-                    }
-                  }
+                  await _confirmPasswordChange(context, user);
                 },
                 child: const Text('Confirm'),
               ),
@@ -105,6 +94,49 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         },
       );
     }
+  }
+
+  Future<void> _confirmPasswordChange(BuildContext context, User user) async {
+    try {
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: _currentPasswordController.text,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      await user.updatePassword(_newPasswordController.text);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Password updated successfully',
+            style: TextStyle(color: Colors.green[700]),
+          ),
+          backgroundColor: Colors.green[100],
+        ),
+      );
+
+      _clearControllers();
+      Navigator.pop(context); // Close dialog
+      Navigator.pop(context); // Go back to the previous page
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        if (e.code == 'wrong-password') {
+          _errorMessage = 'Wrong password provided. Try again.';
+        } else {
+          _errorMessage = 'Error: ${e.message}';
+        }
+      });
+    }
+  }
+
+  void _clearControllers() {
+    _currentPasswordController.clear();
+    _newPasswordController.clear();
+    setState(() {
+      _errorMessage = null;
+    });
   }
 
   @override
@@ -116,16 +148,53 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Change Password'),
         backgroundColor: Theme.of(context).colorScheme.primary,
+        elevation: 0.5,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: ElevatedButton(
-          onPressed: _changePassword,
-          child: const Text('Change Password'),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Update Your Password',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Secure your account by updating your password. Enter your current password and new password.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: _changePassword,
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Change Password',
+                  style: TextStyle(
+                      fontSize: 18,
+                      color: isDarkMode ? Colors.white : Colors.black),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

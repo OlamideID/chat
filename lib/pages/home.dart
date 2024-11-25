@@ -1,4 +1,3 @@
-import 'package:chat/components/mydrawer.dart';
 import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
@@ -57,6 +56,7 @@ class _HomePageState extends ConsumerState<HomePage>
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
+      // drawer: const Mydrawer(),
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -138,7 +138,7 @@ class _HomePageState extends ConsumerState<HomePage>
         ],
       ),
       body: _buildUser(),
-      drawer: const Mydrawer(),
+      // drawer: const Mydrawer(),
     );
   }
 

@@ -8,7 +8,7 @@ class UserProfilePage extends StatefulWidget {
       {super.key, required this.username, required this.about});
 
   @override
-  _UserProfilePageState createState() => _UserProfilePageState();
+  State<UserProfilePage> createState() => _UserProfilePageState();
 }
 
 class _UserProfilePageState extends State<UserProfilePage>
@@ -54,7 +54,7 @@ class _UserProfilePageState extends State<UserProfilePage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('User Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 4.0,
       ),

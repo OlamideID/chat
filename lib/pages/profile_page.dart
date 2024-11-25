@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:chat/pages/change_pass.dart';
-import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,7 +20,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   final Authservice _authService = Authservice();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _aboutController = TextEditingController(); // New about controller
+  final TextEditingController _aboutController = TextEditingController();
   String? userId;
   bool isLoading = true;
 
@@ -42,7 +41,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         var data = userDoc.data()!;
         _usernameController.text = data['username'];
         _emailController.text = data['email'];
-        _aboutController.text = data['about'] ?? ''; // Load about data if available
+        _aboutController.text = data['about'] ?? '';
       }
     }
     setState(() {
@@ -129,6 +128,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
+  Future<void> _deleteUserAccount(String userId) async {
+    // Delete all associated chat rooms
+    QuerySnapshot chatRooms = await FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .where('participants', arrayContains: userId)
+        .get();
+
+    for (var doc in chatRooms.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete user data
+    await FirebaseFirestore.instance.collection('Users').doc(userId).delete();
+
+    // Delete the user's account
+    User? user = _authService.currentUser();
+    await user?.delete();
+  }
+
   Future<void> _deleteAccount() async {
     try {
       User? user = _authService.currentUser();
@@ -153,162 +171,190 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Future<void> _deleteUserAccount(String userId) async {
-    // Delete all associated chat rooms
-    QuerySnapshot chatRooms = await FirebaseFirestore.instance
-        .collection('ChatRooms')
-        .where('participants', arrayContains: userId)
-        .get();
-
-    for (var doc in chatRooms.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete user data
-    await FirebaseFirestore.instance.collection('Users').doc(userId).delete();
-
-    // Delete the user's account
-    User? user = _authService.currentUser();
-    await user?.delete();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    // final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text('Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: AnimatedOpacity(
-        opacity: isLoading ? 0.0 : 1.0,
-        duration: const Duration(milliseconds: 500),
-        child: isLoading
-            ? Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 100,
-              child: Center(
-                child: Lottie.asset(
-                  'assets/Animation - 1730069741511.json',
-                  animate: true,
-                  frameRate: const FrameRate(60),
-                ),
+      body: isLoading
+          ? Center(
+              child: Lottie.asset(
+                'assets/Animation - 1730069741511.json',
+                height: 150,
+                frameRate: const FrameRate(60),
+              ),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Hero Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 30),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.secondary,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.tertiary,
+                          child: const Icon(Icons.person, size: 60),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _usernameController.text,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // User Information Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Account Information",
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 15),
+                        _buildTextField(
+                          controller: _usernameController,
+                          labelText: "Username",
+                        ),
+                        const SizedBox(height: 15),
+                        _buildTextField(
+                          controller: _emailController,
+                          labelText: "Email",
+                          readOnly: true,
+                        ),
+                        const SizedBox(height: 15),
+                        _buildTextField(
+                          controller: _aboutController,
+                          labelText: "About",
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Action Buttons Section
+                  Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: Column(
+                      children: [
+                        const Divider(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 2, horizontal: 10),
+                          child: ListTile(
+                            leading: Icon(Icons.lock,
+                                color: Theme.of(context).colorScheme.primary),
+                            title: const Text("Change Password"),
+                            trailing: const Icon(Icons.arrow_forward_ios),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ChangePasswordPage()),
+                              );
+                            },
+                          ),
+                        ),
+                        const Divider(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: ListTile(
+                            leading: Icon(Icons.delete_forever,
+                                color: Theme.of(context).colorScheme.error),
+                            title: const Text("Delete Account"),
+                            trailing: const Icon(Icons.arrow_forward_ios),
+                            onTap: _showDeleteAccountDialog,
+                          ),
+                        ),
+                        const Divider(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Save Changes Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: _updateProfile,
+                      child: Text(
+                        "Save Changes",
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          ],
-        )
-            : Padding(
-          padding: const EdgeInsets.all(25.0),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    fillColor: Theme.of(context).colorScheme.secondary,
-                    filled: true,
-                    labelText: 'Username',
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.tertiary,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    filled: true,
-                    labelText: 'Email',
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.tertiary,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  readOnly: true,
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _aboutController,
-                  decoration: InputDecoration(
-                    fillColor: Theme.of(context).colorScheme.secondary,
-                    filled: true,
-                    labelText: 'About',
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.tertiary,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Column(
-                  children: [
-                    const Divider(),
-                    ListTile(
-                      title: const Text('Change Password'),
-                      leading: const Icon(Icons.lock),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (context) =>
-                              const ChangePasswordPage()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    const Divider(),
-                    ListTile(
-                      title: const Text('Delete Account'),
-                      leading: const Icon(Icons.delete_forever),
-                      onTap: _showDeleteAccountDialog,
-                    ),
-                    const Divider()
-                  ],
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _updateProfile,
-                  child: Text(
-                    'Save Changes',
-                    style: TextStyle(
-                        color:
-                        isDarkMode ? Colors.white : Colors.grey[900]),
-                  ),
-                ),
-              ],
-            ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    bool readOnly = false,
+  }) {
+    return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.secondaryContainer,
+        labelText: labelText,
+        labelStyle: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.tertiary,
           ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
