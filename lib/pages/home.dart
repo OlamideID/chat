@@ -458,60 +458,90 @@ class _HomePageState extends ConsumerState<HomePage>
     });
   }
 
-  Widget _buildUserItem(Map<String, dynamic> userData, BuildContext context) {
-    // Check if this is not the current user
-    if (userData["uid"] != _authservice.currentUser()?.uid) {
-      return StreamBuilder<int>(
-        stream: getMessageCount(userData['uid']), // Use getMessageCount here
-        builder: (context, countSnapshot) {
-          return StreamBuilder<String>(
-            stream: _getLastMessageFromChatroom(userData['uid']),
-            builder: (context, snapshot) {
-              return UserTile(
-                count: countSnapshot.data ??
-                    0, // Pass the unread message count to UserTile
-                initial: userData["username"]?.isNotEmpty ?? false
-                    ? userData["username"]![0]
-                        .toUpperCase() // First letter of username
-                    : '', // If username is empty, display nothing
-                text: userData["username"] ?? '',
-                lastMessage: snapshot.data ?? '',
-                delete: () async {
-                  await _showDeleteMessage(
-                      context, userData['uid'], userData["username"]);
-                },
-                onTap: () {
-                  _searchFocusNode.unfocus();
+void _markMessagesAsRead(String otherUserId) async {
+  // Get the current user's ID
+  String? currentUserId = _authservice.currentUser()?.uid;
 
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          ChatPage(
-                        ontap: () {
-                          viewProfile(
-                            context,
-                            userData["username"] ?? '',
-                            userData['about'] ?? 'No Status yet',
-                          );
-                        },
-                        receiverID: userData['uid'],
-                        receiver: userData["username"] ?? '',
-                      ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      );
-    } else {
-      return const Center(child: Text('oops'));
-    }
+  if (currentUserId == null) {
+    print("No current user found");
+    return;
   }
+
+  String chatroomId = _generateChatroomId(currentUserId, otherUserId);
+
+  // Query for unread messages from the other user
+  QuerySnapshot unreadMessages = await FirebaseFirestore.instance
+      .collection('chat_rooms')
+      .doc(chatroomId)
+      .collection('messages')
+      .where('isRead', isEqualTo: false)
+      .where('senderID', isEqualTo: otherUserId)
+      .get();
+
+  // Batch update to mark messages as read
+  WriteBatch batch = FirebaseFirestore.instance.batch();
+  for (var doc in unreadMessages.docs) {
+    batch.update(doc.reference, {'isRead': true});
+  }
+
+  // Commit the batch
+  await batch.commit();
 }
+
+Widget _buildUserItem(Map<String, dynamic> userData, BuildContext context) {
+  // Check if this is not the current user
+  if (userData["uid"] != _authservice.currentUser()?.uid) {
+    return StreamBuilder<int>(
+      stream: getMessageCount(userData['uid']),
+      builder: (context, countSnapshot) {
+        return StreamBuilder<String>(
+          stream: _getLastMessageFromChatroom(userData['uid']),
+          builder: (context, snapshot) {
+            return UserTile(
+              count: countSnapshot.data ?? 0,
+              initial: userData["username"]?.isNotEmpty ?? false
+                  ? userData["username"]![0].toUpperCase()
+                  : '',
+              text: userData["username"] ?? '',
+              lastMessage: snapshot.data ?? '',
+              delete: () async {
+                await _showDeleteMessage(
+                    context, userData['uid'], userData["username"]);
+              },
+              onTap: () {
+                _searchFocusNode.unfocus();
+
+                // Mark messages as read before navigating
+                _markMessagesAsRead(userData['uid']);
+
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        ChatPage(
+                      ontap: () {
+                        viewProfile(
+                          context,
+                          userData["username"] ?? '',
+                          userData['about'] ?? 'No Status yet',
+                        );
+                      },
+                      receiverID: userData['uid'],
+                      receiver: userData["username"] ?? '',
+                    ),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  } else {
+    return const Center(child: Text('oops'));
+  }
+}}
