@@ -22,16 +22,15 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messagectrl = TextEditingController();
-
   final ChatService chat = ChatService();
   final Authservice auth = Authservice();
   final FocusNode _focusNode = FocusNode();
-
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         Future.delayed(
@@ -120,32 +119,56 @@ class _ChatPageState extends State<ChatPage> {
 
         return ListView(
           controller: _scrollController,
-          children:
-              snapshot.data!.docs.map((doc) => _buildMessageItem(doc)).toList(),
+          children: snapshot.data!.docs
+              .map((doc) => _buildMessageItem(doc, snapshot))
+              .toList(),
         );
       },
     );
   }
 
-  Widget _buildMessageItem(DocumentSnapshot doc) {
+  Widget _buildMessageItem(
+      DocumentSnapshot doc, AsyncSnapshot<QuerySnapshot> snapshot) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
     bool isUser = data['senderID'] == auth.currentUser()!.uid;
+    bool isRead = data['isRead'] ?? false;
+    Timestamp timestamp = data['timestamp'];
 
-    var alignment = isUser ? Alignment.centerRight : Alignment.centerLeft;
+    // Check if the receiver has sent another message after this one
+    bool hasReceiverSentNewMessage = false;
+
+    // Convert the current message's timestamp to DateTime
+    DateTime currentMessageTime = timestamp.toDate();
+
+    // Iterate over the messages in the snapshot to check if the receiver sent a message after this one
+    for (var message in snapshot.data!.docs) {
+      Map<String, dynamic> messageData = message.data() as Map<String, dynamic>;
+      // Extract the timestamp for each message
+      Timestamp messageTimestamp = messageData['timestamp'];
+      DateTime messageTime = messageTimestamp.toDate();
+
+      // Compare the timestamp to see if the receiver has sent a new message after this one
+      if (messageData['senderID'] == widget.receiverID &&
+          messageTime.isAfter(currentMessageTime)) {
+        hasReceiverSentNewMessage = true;
+        break; // Exit loop once we find a new message from the receiver
+      }
+    }
 
     return Container(
-        alignment: alignment,
-        child: Column(
-          children: [
-            ChatBubble(
-              isCurrentUser: isUser,
-              message: data['message'],
-              messageID: doc.id,
-              userID: data['senderID'],
-            ),
-          ],
-        ));
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: ChatBubble(
+        isCurrentUser: isUser,
+        message: data['message'],
+        messageID: doc.id,
+        userID: data['senderID'],
+        isRead: isRead,
+        timestamp: timestamp,
+        isReceiverNewMessage:
+            hasReceiverSentNewMessage, // Pass this flag to the ChatBubble
+      ),
+    );
   }
 }
 

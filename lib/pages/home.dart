@@ -1,13 +1,16 @@
+import 'package:chat/components/loading.dart';
 import 'package:chat/components/user_tile.dart';
+import 'package:chat/pages/blocked2.dart';
 import 'package:chat/pages/chat_page.dart';
+import 'package:chat/pages/profile_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
-import 'package:chat/providers/theme_provider.dart';
+// import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:lottie/lottie.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -23,7 +26,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearchActive = false; // Track if the search bar is active
+// State to control AppBar visibility
 
   @override
   void initState() {
@@ -35,110 +38,199 @@ class _HomePageState extends ConsumerState<HomePage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchFocusNode.dispose();
+    _searchFocusNode.unfocus();
     super.dispose();
   }
 
-  @override
-  void didPopNext() {
-    // Reset the search bar when coming back to the HomePage
-    if (!_searchFocusNode.hasFocus) {
-      _searchFocusNode.unfocus();
-      setState(() {
-        _isSearchActive = false; // Set search bar to inactive
-        _searchQuery = ''; // Clear search query
-        _searchController.clear(); // Clear search input
-      });
-    }
-  }
+  String _selectedTab = 'Users';
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    // final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
-      // drawer: const Mydrawer(),
       appBar: AppBar(
-        centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.primary,
-        title: AnimatedSwitcher(
-          duration: const Duration(
-              milliseconds: 500), // Adjusted duration for smoother transition
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            // Use a smooth fade and scale transition
-            return FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween(begin: 0.9, end: 1.0).animate(animation),
-                child: child,
+        elevation: 0,
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            const SizedBox(
+              width: 30,
+            ),
+            Expanded(
+              child: Container(
+                height: 40,
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  decoration: InputDecoration(
+                    hintText: 'Search...',
+                    hintStyle: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                    ),
+                    border: InputBorder.none,
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.8),
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchQuery = '';
+                                _searchController.clear();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                ),
               ),
-            );
-          },
-          child: _isSearchActive
-              ? Container(
-                  key: ValueKey<bool>(_isSearchActive),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? Colors.grey[800] : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        blurRadius: 10,
-                        spreadRadius: 1,
+            ),
+            const SizedBox(
+              width: 10,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 40),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ProfilePage()),
+                  );
+                },
+                child: CircleAvatar(
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .secondaryContainer, // Updated color
+                  radius: 18,
+                  child: Icon(
+                    Icons.person,
+                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      // Hide AppBar if _isAppBarVisible is false
+      body: GestureDetector(
+        onTap: () {
+          // Show AppBar when user interacts with the body
+          setState(() {});
+        },
+        child: Column(
+          children: [
+            // Users and Blocked Tab
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: IntrinsicWidth(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Users Tab
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedTab = 'Users';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'Users',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedTab == 'Users'
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const VerticalDivider(
+                        color: Colors.black12,
+                        thickness: 1,
+                        width: 20,
+                        indent: 4,
+                        endIndent: 4,
+                      ),
+                      // Blocked Tab
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedTab = 'Blocked';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'Blocked',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedTab == 'Blocked'
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: GestureDetector(
-                    onTap: () {
-                      FocusScope.of(context).requestFocus(_searchFocusNode);
-                    },
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        hintStyle: TextStyle(
-                            color: isDarkMode ? Colors.white70 : Colors.black),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      style: TextStyle(
-                          color: isDarkMode ? Colors.white : Colors.black),
-                    ),
-                  ),
-                )
-              : Text(
-                  'HOME',
-                  key: ValueKey<bool>(_isSearchActive),
                 ),
+              ),
+            ),
+            // Display the selected tab's content
+            Expanded(
+              child: _selectedTab == 'Users'
+                  ? _buildUser()
+                  : Blocked2(const TextStyle()),
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearchActive ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearchActive = !_isSearchActive;
-                if (!_isSearchActive) {
-                  _searchFocusNode.unfocus();
-                  _searchQuery = '';
-                  _searchController.clear();
-                }
-              });
-            },
-          ),
-        ],
       ),
-      body: _buildUser(),
-      // drawer: const Mydrawer(),
     );
   }
 
@@ -265,6 +357,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 userData["isDeleted"] != true)
             .toList();
 
+        // Apply the search query filter
         if (_searchQuery.isNotEmpty) {
           users = users.where((userData) {
             return userData["username"]
@@ -302,56 +395,123 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
+  // Stream to listen for real-time updates
+  Stream<String> _getLastMessageFromChatroom(String otherUserId) {
+    String? currentUserId = _authservice.currentUser()?.uid;
+    if (currentUserId == null) {
+      return Stream.value(
+          ''); // Return an empty stream if there's no current user
+    }
+
+    // Generate the chatroom ID (sorted to ensure consistency)
+    String chatroomId = _generateChatroomId(currentUserId, otherUserId);
+
+    // Stream the last message from Firestore in real-time
+    return FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(chatroomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        var lastMessageData = snapshot.docs.first.data();
+        return lastMessageData['message'] ?? '';
+      }
+      return ''; // Return empty if no message
+    });
+  }
+
+  // Utility method to generate a consistent chatroom ID
+  String _generateChatroomId(String user1Id, String user2Id) {
+    List<String> sortedIds = [user1Id, user2Id]..sort();
+    return sortedIds.join('_');
+  }
+
+  Stream<int> getMessageCount(String otherUserId) {
+    // Get the current user's ID
+    String? currentUserId = _authservice.currentUser()?.uid;
+
+    if (currentUserId == null) {
+      print("No current user found");
+      return Stream.value(0);
+    }
+
+    String chatroomId = _generateChatroomId(currentUserId, otherUserId);
+
+    print("Chatroom ID: $chatroomId for otherUserId: $otherUserId");
+
+    return FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(chatroomId)
+        .collection('messages')
+        .where('isRead', isEqualTo: false)
+        .where('senderID', isEqualTo: otherUserId)
+        .snapshots()
+        .map((snapshot) {
+      print("Unread messages count: ${snapshot.docs.length}");
+      for (var doc in snapshot.docs) {
+        print("Message Data: ${doc.data()}");
+      }
+      return snapshot.docs.length;
+    });
+  }
+
   Widget _buildUserItem(Map<String, dynamic> userData, BuildContext context) {
+    // Check if this is not the current user
     if (userData["uid"] != _authservice.currentUser()?.uid) {
-      return UserTile(
-        delete: () async {
-          await _showDeleteMessage(
-              context, userData['uid'], userData["username"]);
-        },
-        text: userData["username"],
-        onTap: () {
-          Navigator.push(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => ChatPage(
-                ontap: () {
-                  viewProfile(
+      return StreamBuilder<int>(
+        stream: getMessageCount(userData['uid']), // Use getMessageCount here
+        builder: (context, countSnapshot) {
+          return StreamBuilder<String>(
+            stream: _getLastMessageFromChatroom(userData['uid']),
+            builder: (context, snapshot) {
+              return UserTile(
+                count: countSnapshot.data ??
+                    0, // Pass the unread message count to UserTile
+                initial: userData["username"]?.isNotEmpty ?? false
+                    ? userData["username"]![0]
+                        .toUpperCase() // First letter of username
+                    : '', // If username is empty, display nothing
+                text: userData["username"] ?? '',
+                lastMessage: snapshot.data ?? '',
+                delete: () async {
+                  await _showDeleteMessage(
+                      context, userData['uid'], userData["username"]);
+                },
+                onTap: () {
+                  _searchFocusNode.unfocus();
+
+                  Navigator.push(
                     context,
-                    userData["username"] ?? '',
-                    userData['about'] ?? 'No Status yet',
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          ChatPage(
+                        ontap: () {
+                          viewProfile(
+                            context,
+                            userData["username"] ?? '',
+                            userData['about'] ?? 'No Status yet',
+                          );
+                        },
+                        receiverID: userData['uid'],
+                        receiver: userData["username"] ?? '',
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                    ),
                   );
                 },
-                receiverID: userData['uid'],
-                receiver: userData["username"] ?? '',
-              ),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            ),
-          ).then((_) {
-            return ();
-          });
+              );
+            },
+          );
         },
       );
     } else {
       return const Center(child: Text('oops'));
     }
-  }
-}
-
-class LoadingAnimation extends StatefulWidget {
-  const LoadingAnimation({super.key});
-
-  @override
-  State<LoadingAnimation> createState() => _LoadingAnimationState();
-}
-
-class _LoadingAnimationState extends State<LoadingAnimation> {
-  @override
-  Widget build(BuildContext context) {
-    return Lottie.asset('assets/Animation - 1730069741511.json',
-        height: 150, width: 150);
   }
 }

@@ -22,28 +22,66 @@ class ChatService {
     });
   }
 
-  Future<void> sendMessage(String receiverID, messageContent) async {
+  Future<void> sendMessage(String receiverID, String message) async {
     final String currentUserID = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email!;
     final Timestamp timestamp = Timestamp.now();
 
-    Message message = Message(
+    Message newMessage = Message(
       senderID: currentUserID,
       senderEmail: currentUserEmail,
       receiverID: receiverID,
-      message: messageContent,
+      message: message,
       timestamp: timestamp,
+      isRead: false,
     );
 
     List<String> ids = [currentUserID, receiverID];
     ids.sort();
-    String chatRoom = ids.join('_');
+    String chatRoomId = ids.join('_');
 
     await _store
         .collection('chat_rooms')
-        .doc(chatRoom)
+        .doc(chatRoomId)
         .collection('messages')
-        .add(message.toMap());
+        .add(newMessage.toMap());
+  }
+
+//  Future<void> markMessageAsRead(String chatroomId, String messageId) async {
+//   await FirebaseFirestore.instance
+//       .collection('chat_rooms')
+//       .doc(chatroomId)
+//       .collection('messages')
+//       .doc(messageId)
+//       .update({'read': true});
+// }
+
+
+  Future<void> deleteMessage(
+      String messageId, String userID, String otherUserID) async {
+    try {
+      // Ensure user IDs are sorted to generate a consistent chat room ID
+      List<String> ids = [userID, otherUserID];
+      ids.sort();
+      String chatRoomId = ids.join('_');
+
+      // Reference to the specific message document
+      DocumentReference messageRef = _store
+          .collection('chat_rooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .doc(messageId);
+
+      // Mark the message as deleted by updating the 'isDeleted' field
+      await messageRef.update({
+        'isDeleted': true, // Flag the message as deleted
+      });
+
+      print("Message $messageId marked as deleted successfully.");
+    } catch (e) {
+      print("Error marking message as deleted: $e");
+      throw Exception("Error marking message as deleted");
+    }
   }
 
   Stream<QuerySnapshot> getMessages(String userID, otherUserID) {
@@ -246,7 +284,4 @@ class ChatService {
 
     print("Chat reference for $chatRoomId updated/removed.");
   }
-
-
-
 }

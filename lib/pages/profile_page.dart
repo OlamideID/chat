@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:chat/pages/change_pass.dart';
+import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
@@ -81,7 +83,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   void _showDeleteAccountDialog() {
-    if (Platform.isIOS) {
+    if (kIsWeb) {
+      // For Web
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Delete Account'),
+            content: const Text(
+                'Are you sure you want to delete your account? This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), // Close dialog
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await _deleteAccount();
+                  Navigator.pop(context); // Close dialog
+                },
+                child: const Text('Yes'),
+              ),
+            ],
+          );
+        },
+      );
+    } else if (Platform.isIOS) {
+      // For iOS
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
@@ -103,6 +131,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
       );
     } else {
+      // For Android
       showDialog(
         context: context,
         builder: (context) {
@@ -118,6 +147,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               TextButton(
                 onPressed: () async {
                   await _deleteAccount();
+                  Navigator.pop(context); // Close dialog
                 },
                 child: const Text('Yes'),
               ),
@@ -129,22 +159,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Future<void> _deleteUserAccount(String userId) async {
-    // Delete all associated chat rooms
-    QuerySnapshot chatRooms = await FirebaseFirestore.instance
-        .collection('chat_rooms')
-        .where('participants', arrayContains: userId)
-        .get();
+    try {
+      // Delete all associated chat rooms
+      QuerySnapshot chatRooms = await FirebaseFirestore.instance
+          .collection('chat_rooms')
+          .where('participants', arrayContains: userId)
+          .get();
 
-    for (var doc in chatRooms.docs) {
-      await doc.reference.delete();
+      await Future.wait(
+        chatRooms.docs.map((doc) async {
+          try {
+            await doc.reference.delete();
+          } catch (e) {
+            print('Error deleting chat room ${doc.id}: $e');
+          }
+        }),
+      );
+
+      // Delete user data
+      await FirebaseFirestore.instance.collection('Users').doc(userId).delete();
+
+      // Delete the user's account
+      User? user = _authService.currentUser();
+      await user?.delete();
+    } catch (e) {
+      print('Error during account deletion: $e');
+      throw e; // Re-throw the error to handle it in the caller
     }
-
-    // Delete user data
-    await FirebaseFirestore.instance.collection('Users').doc(userId).delete();
-
-    // Delete the user's account
-    User? user = _authService.currentUser();
-    await user?.delete();
   }
 
   Future<void> _deleteAccount() async {
@@ -158,7 +199,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SnackBar(content: Text('Account deleted successfully.')),
         );
         Navigator.pop(context); // Close dialog
-        Navigator.pop(context); // Go back to the previous page
       }
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,7 +213,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -208,19 +248,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                     child: Column(
                       children: [
+                        // Inside the build method, within the Hero Header section
                         CircleAvatar(
                           radius: 50,
                           backgroundColor:
                               Theme.of(context).colorScheme.tertiary,
-                          child: const Icon(Icons.person, size: 60),
+                          child: Text(
+                            _usernameController.text.isNotEmpty
+                                ? _usernameController.text[0]
+                                    .toUpperCase() // Display first letter of username
+                                : '', // If username is empty, display nothing
+                            style: TextStyle(
+                                fontSize: 30, // Size of the first letter
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black),
+                          ),
                         ),
+
                         const SizedBox(height: 10),
                         Text(
                           _usernameController.text,
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
-                              ?.copyWith(color: Colors.white),
+                              ?.copyWith(
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black),
                         ),
                       ],
                     ),

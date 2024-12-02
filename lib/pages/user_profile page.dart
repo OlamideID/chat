@@ -1,6 +1,8 @@
+import 'package:chat/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class UserProfilePage extends StatefulWidget {
+class UserProfilePage extends ConsumerStatefulWidget {
   final String username;
   final String about;
 
@@ -8,10 +10,10 @@ class UserProfilePage extends StatefulWidget {
       {super.key, required this.username, required this.about});
 
   @override
-  State<UserProfilePage> createState() => _UserProfilePageState();
+  ConsumerState<UserProfilePage> createState() => _UserProfilePageState();
 }
 
-class _UserProfilePageState extends State<UserProfilePage>
+class _UserProfilePageState extends ConsumerState<UserProfilePage>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _usernameAnimation;
@@ -52,6 +54,8 @@ class _UserProfilePageState extends State<UserProfilePage>
 
   @override
   Widget build(BuildContext context) {
+        final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Profile'),
@@ -134,9 +138,9 @@ class _UserProfilePageState extends State<UserProfilePage>
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
                           widget.about,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
-                            color: Colors.black87,
+                            color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
