@@ -1,9 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ChatBubble extends StatelessWidget {
-  ChatBubble({
+  const ChatBubble({
     super.key,
     required this.isCurrentUser,
     required this.message,
@@ -11,7 +12,8 @@ class ChatBubble extends StatelessWidget {
     required this.userID,
     required this.isRead,
     required this.timestamp,
-    required this.isReceiverNewMessage, // Add the isReceiver parameter
+    required this.isReceiverNewMessage,
+    this.imageUrl,
   });
 
   final bool isCurrentUser;
@@ -20,10 +22,8 @@ class ChatBubble extends StatelessWidget {
   final String userID;
   final bool isRead;
   final Timestamp timestamp;
-  final bool
-      isReceiverNewMessage; // New parameter to determine if receiver sent a new message
-
-  final ChatService _chatService = ChatService();
+  final bool isReceiverNewMessage;
+  final String? imageUrl;
 
   void showOptions(BuildContext context, String messageUserID) {
     showModalBottomSheet(
@@ -37,17 +37,6 @@ class ChatBubble extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).pop();
                 _reportMessage(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.block),
-              title: const Text('Block'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _chatService.blockUser(userID);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User Blocked')),
-                );
               },
             ),
             ListTile(
@@ -77,7 +66,7 @@ class ChatBubble extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                _chatService.reportUser(userID, messageID);
+                ChatService().reportUser(messageID, userID);
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Message Reported')),
@@ -105,9 +94,7 @@ class ChatBubble extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
           decoration: BoxDecoration(
-            color: isCurrentUser
-                ? const Color(0xFFDCF8C6)
-                : Colors.white, // WhatsApp green and gray for other user
+            color: isCurrentUser ? const Color(0xFFDCF8C6) : Colors.white,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(15),
               topRight: const Radius.circular(15),
@@ -125,19 +112,42 @@ class ChatBubble extends StatelessWidget {
             ],
           ),
           constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width *
-                0.75, // Max width for bubbles
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                message,
-                style: TextStyle(
-                  color: isCurrentUser ? Colors.black : Colors.black,
-                  fontSize: 16,
+              if (imageUrl != null && imageUrl!.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => Dialog(
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl!,
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl!,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                    ),
+                  ),
                 ),
-              ),
+              if (message.isNotEmpty)
+                Text(
+                  message,
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                ),
               const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -166,33 +176,23 @@ class ChatBubble extends StatelessWidget {
 
   String _formatTimestamp(Timestamp timestamp) {
     DateTime dateTime = timestamp.toDate();
-    DateTime now = DateTime.now();
-    Duration difference = now.difference(dateTime);
+    Duration difference = DateTime.now().difference(dateTime);
 
-    // Format timestamp like WhatsApp
     if (difference.inDays == 0) {
-      // Today, display time
       return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
-      // Yesterday
       return 'Yesterday';
     } else if (difference.inDays < 7) {
-      // Last 7 days
-      return dateTime.weekday == 1
-          ? "Mon"
-          : dateTime.weekday == 2
-              ? "Tue"
-              : dateTime.weekday == 3
-                  ? "Wed"
-                  : dateTime.weekday == 4
-                      ? "Thu"
-                      : dateTime.weekday == 5
-                          ? "Fri"
-                          : dateTime.weekday == 6
-                              ? "Sat"
-                              : "Sun";
+      return [
+        'Sun',
+        'Mon',
+        'Tue',
+        'Wed',
+        'Thu',
+        'Fri',
+        'Sat'
+      ][dateTime.weekday - 1];
     } else {
-      // Older dates
       return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
     }
   }

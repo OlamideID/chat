@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:chat/pages/change_pass.dart';
+import 'package:chat/pages/viewer.dart';
 import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,6 +27,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   final TextEditingController _aboutController = TextEditingController();
   String? userId;
   bool isLoading = true;
+  String? profilePictureUrl;
+  StreamSubscription? _userDocSubscription;
 
   @override
   void initState() {
@@ -35,19 +39,45 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _loadUserData() async {
     userId = _authService.currentUser()?.uid;
     if (userId != null) {
+      // Fetch initial user data
       var userDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
           .get();
+
       if (userDoc.exists) {
-        var data = userDoc.data()!;
-        _usernameController.text = data['username'];
-        _emailController.text = data['email'];
-        _aboutController.text = data['about'] ?? '';
+        _updateUserFields(userDoc.data()!);
       }
+
+      // Set up real-time listener
+      _userDocSubscription = FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          _updateUserFields(snapshot.data()!);
+        }
+      }, onError: (error) {
+        print('Error listening to user document: $error');
+      });
     }
+
     setState(() {
       isLoading = false;
+    });
+  }
+
+  void _updateUserFields(Map<String, dynamic> data) {
+    setState(() {
+      _usernameController.text = data['username'] ?? '';
+      _emailController.text = data['email'] ?? '';
+      _aboutController.text = data['about'] ?? '';
+
+      // Check if profile picture has changed
+      if (profilePictureUrl != data['profilePicture']) {
+        profilePictureUrl = data['profilePicture'];
+      }
     });
   }
 
@@ -212,6 +242,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   @override
+  void dispose() {
+    // Cancel the subscription when the widget is disposed
+    _userDocSubscription?.cancel();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _aboutController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
@@ -248,24 +288,53 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                     child: Column(
                       children: [
-                        // Inside the build method, within the Hero Header section
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.tertiary,
-                          child: Text(
-                            _usernameController.text.isNotEmpty
-                                ? _usernameController.text[0]
-                                    .toUpperCase() // Display first letter of username
-                                : '', // If username is empty, display nothing
-                            style: TextStyle(
-                                fontSize: 30, // Size of the first letter
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    isDarkMode ? Colors.white : Colors.black),
-                          ),
+                        // Profile Picture Section
+                        GestureDetector(
+                          onTap: () async {
+                            final updatedUrl = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProfilePicturePage(
+                                  profilePictureUrl: profilePictureUrl,
+                                  onUpdate: (updatedUrl) {
+                                    setState(() {
+                                      profilePictureUrl = updatedUrl;
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                            if (updatedUrl != null) {
+                              setState(() {
+                                profilePictureUrl = updatedUrl;
+                              });
+                            }
+                          },
+                          child: profilePictureUrl != null
+                              ? CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage:
+                                      NetworkImage(profilePictureUrl!),
+                                )
+                              : CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.tertiary,
+                                  child: Text(
+                                    _usernameController.text.isNotEmpty
+                                        ? _usernameController.text[0]
+                                            .toUpperCase()
+                                        : '',
+                                    style: TextStyle(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                ),
                         ),
-
                         const SizedBox(height: 10),
                         Text(
                           _usernameController.text,
@@ -402,13 +471,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.tertiary,
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(15),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.primary,
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(15),
         ),
       ),
     );

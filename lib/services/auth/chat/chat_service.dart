@@ -1,17 +1,14 @@
 import 'dart:io';
 
-import 'package:chat/models/imgs.dart';
 import 'package:chat/models/message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img; // Import the image package
+import 'package:supabase_flutter/supabase_flutter.dart'; // Import the image package
 
 class ChatService {
   final FirebaseFirestore _store = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   Stream<List<Map<String, dynamic>>> getUsers() {
     return _store.collection('Users').snapshots().map((snapshot) {
@@ -22,40 +19,104 @@ class ChatService {
     });
   }
 
-  Future<void> sendMessage(String receiverID, String message) async {
+  Future<void> sendImageMessage(String receiverID, File imageFile) async {
     final String currentUserID = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email!;
     final Timestamp timestamp = Timestamp.now();
 
-    Message newMessage = Message(
-      senderID: currentUserID,
-      senderEmail: currentUserEmail,
-      receiverID: receiverID,
-      message: message,
-      timestamp: timestamp,
-      isRead: false,
-    );
+    try {
+      // Prepare the file for upload
+      final String fileName =
+          '${currentUserID}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String filePath = 'Images/$fileName'; // File path in Supabase
 
-    List<String> ids = [currentUserID, receiverID];
-    ids.sort();
-    String chatRoomId = ids.join('_');
+      // Upload image to Supabase
+      await Supabase.instance.client.storage
+          .from('Images') // Ensure bucket name matches
+          .upload(filePath, imageFile);
 
-    await _store
-        .collection('chat_rooms')
-        .doc(chatRoomId)
-        .collection('messages')
-        .add(newMessage.toMap());
+      // Generate the public URL
+      final String imageUrl = Supabase.instance.client.storage
+          .from('Images')
+          .getPublicUrl(filePath);
+
+      // Validate URL
+      if (imageUrl.isEmpty) {
+        throw Exception('Image URL generation failed');
+      }
+
+      // Construct the message object
+      final message = {
+        'senderID': currentUserID,
+        'senderEmail': currentUserEmail,
+        'receiverID': receiverID,
+        'message': '', // Image message without text
+        'timestamp': timestamp,
+        'isRead': false,
+        'imageUrl': imageUrl,
+      };
+
+      // Generate chat room ID
+      final List<String> ids = [currentUserID, receiverID]..sort();
+      final String chatRoomId = ids.join('_');
+
+      // Save to Firestore
+      await _store
+          .collection('chat_rooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .add(message);
+
+      if (kDebugMode) {
+        print('Image message sent successfully with URL: $imageUrl');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error sending image message: $e');
+      }
+      rethrow;
+    }
   }
 
-//  Future<void> markMessageAsRead(String chatroomId, String messageId) async {
-//   await FirebaseFirestore.instance
-//       .collection('chat_rooms')
-//       .doc(chatroomId)
-//       .collection('messages')
-//       .doc(messageId)
-//       .update({'read': true});
-// }
+  Future<void> sendMessage(String receiverID,
+      {required String message, String? imageUrl}) async {
+    final String currentUserID = _auth.currentUser!.uid;
+    final String currentUserEmail = _auth.currentUser!.email!;
+    final Timestamp timestamp = Timestamp.now();
 
+    try {
+      // Construct the message object
+      final newMessage = Message(
+        senderID: currentUserID,
+        senderEmail: currentUserEmail,
+        receiverID: receiverID,
+        message: message,
+        timestamp: timestamp,
+        isRead: false,
+        imageUrl: imageUrl ?? '', // Add image URL if provided
+      );
+
+      // Generate chat room ID
+      final List<String> ids = [currentUserID, receiverID]..sort();
+      final String chatRoomId = ids.join('_');
+
+      // Save to Firestore
+      await _store
+          .collection('chat_rooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .add(newMessage.toMap());
+
+      if (kDebugMode) {
+        print('Message sent successfully with image URL: $imageUrl');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error sending message: $e');
+      }
+      rethrow;
+    }
+  }
 
   Future<void> deleteMessage(
       String messageId, String userID, String otherUserID) async {
@@ -167,61 +228,6 @@ class ChatService {
           .map((doc) => doc.data())
           .toList();
     });
-  }
-
-  Future<void> sendImage(String receiverID, File imageFile) async {
-    try {
-      final String currentUserID = _auth.currentUser!.uid;
-      final String currentUserEmail = _auth.currentUser!.email!;
-      final Timestamp timestamp = Timestamp.now();
-
-      // Compress the image
-      final originalImageBytes = await imageFile.readAsBytes();
-      img.Image? originalImage = img.decodeImage(originalImageBytes);
-      img.Image resizedImage =
-          img.copyResize(originalImage!, width: 800); // Resize as needed
-
-      // Encode the resized image as JPEG with a quality parameter (0-100)
-      final compressedImageBytes =
-          img.encodeJpg(resizedImage, quality: 70); // Adjust quality as needed
-      final compressedImageFile = File('${imageFile.path}_compressed.jpg');
-      await compressedImageFile.writeAsBytes(compressedImageBytes);
-
-      // Generate a unique file path in Firebase Storage
-      String filePath =
-          'chat_images/${DateTime.now().millisecondsSinceEpoch}_$currentUserID.jpg';
-
-      // Upload the compressed image
-      UploadTask uploadTask =
-          _storage.ref(filePath).putFile(compressedImageFile);
-      TaskSnapshot snapshot = await uploadTask;
-      String imageUrl = await snapshot.ref.getDownloadURL();
-
-      // Create an ImgMessage object with the image URL
-      ImgMessage imgMessage = ImgMessage(
-        senderID: currentUserID,
-        senderEmail: currentUserEmail,
-        receiverID: receiverID,
-        message: imageUrl, // Storing the image URL as the message
-        timestamp: timestamp,
-        messageType: 'image', // Specify message type
-      );
-
-      // Save the image message to Firestore
-      List<String> ids = [currentUserID, receiverID];
-      ids.sort();
-      String chatRoom = ids.join('_');
-      await _store
-          .collection('chat_rooms')
-          .doc(chatRoom)
-          .collection('messages')
-          .add(imgMessage.toMap());
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error sending image: $e");
-      }
-      throw Exception("Error sending image");
-    }
   }
 
   Future<void> deleteAllMessages(String otherUserID) async {

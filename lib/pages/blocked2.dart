@@ -16,7 +16,7 @@ class Blocked2 extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Unblock USer'),
+        title: const Text('Unblock User'),
         content: const Text('Are you sure you want to?'),
         actions: [
           TextButton(
@@ -82,7 +82,6 @@ class Blocked2 extends ConsumerWidget {
             itemBuilder: (context, index) {
               final user = blockedUsers[index];
               return UserTile(
-                
                 text: user['username'],
                 onTap: () {
                   _showUnblockOption(context, user['uid'], user['username']);

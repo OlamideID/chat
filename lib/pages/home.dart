@@ -8,8 +8,10 @@ import 'package:chat/pages/user_profile%20page.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -26,6 +28,9 @@ class _HomePageState extends ConsumerState<HomePage>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final FocusNode _searchFocusNode = FocusNode();
+  // final Set<String> _recentlyViewedChats = {};
+  static String? _currentOpenChatId;
+
 // State to control AppBar visibility
 
   @override
@@ -119,15 +124,59 @@ class _HomePageState extends ConsumerState<HomePage>
                         builder: (context) => const ProfilePage()),
                   );
                 },
-                child: CircleAvatar(
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .secondaryContainer, // Updated color
-                  radius: 18,
-                  child: Icon(
-                    Icons.person,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
+                child: StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('Users')
+                      .doc(_authservice.currentUser()?.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data!.exists) {
+                      final userData =
+                          snapshot.data!.data() as Map<String, dynamic>?;
+                      final profilePictureUrl = userData?['profilePicture'];
+
+                      return CircleAvatar(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.secondaryContainer,
+                        radius: 18,
+                        child: profilePictureUrl != null
+                            ? ClipOval(
+                                child: Image.network(
+                                  profilePictureUrl,
+                                  fit: BoxFit.cover,
+                                  width: 36,
+                                  height: 36,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.person,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                    );
+                                  },
+                                ),
+                              )
+                            : Icon(
+                                Icons.person,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSecondaryContainer,
+                              ),
+                      );
+                    }
+
+                    // Fallback to default icon while loading
+                    return CircleAvatar(
+                      backgroundColor:
+                          Theme.of(context).colorScheme.secondaryContainer,
+                      radius: 18,
+                      child: Icon(
+                        Icons.person,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -234,8 +283,7 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  _showDeleteMessage(
-      BuildContext context, String otherUserId, String username) {
+  _showOptions(BuildContext context, String otherUserId, String username) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -310,28 +358,6 @@ class _HomePageState extends ConsumerState<HomePage>
           ],
         );
       },
-    );
-  }
-
-  viewProfile(BuildContext context, String name, String about) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            UserProfilePage(
-          about: about,
-          username: name,
-        ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          var begin = const Offset(0.0, 1.0);
-          var end = Offset.zero;
-          var curve = Curves.easeInOut;
-          var tween =
-              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          return SlideTransition(
-              position: animation.drive(tween), child: child);
-        },
-      ),
     );
   }
 
@@ -429,41 +455,14 @@ class _HomePageState extends ConsumerState<HomePage>
     return sortedIds.join('_');
   }
 
-  Stream<int> getMessageCount(String otherUserId) {
-    // Get the current user's ID
-    String? currentUserId = _authservice.currentUser()?.uid;
-
-    if (currentUserId == null) {
-      print("No current user found");
-      return Stream.value(0);
-    }
-
-    String chatroomId = _generateChatroomId(currentUserId, otherUserId);
-
-    print("Chatroom ID: $chatroomId for otherUserId: $otherUserId");
-
-    return FirebaseFirestore.instance
-        .collection('chat_rooms')
-        .doc(chatroomId)
-        .collection('messages')
-        .where('isRead', isEqualTo: false)
-        .where('senderID', isEqualTo: otherUserId)
-        .snapshots()
-        .map((snapshot) {
-      print("Unread messages count: ${snapshot.docs.length}");
-      for (var doc in snapshot.docs) {
-        print("Message Data: ${doc.data()}");
-      }
-      return snapshot.docs.length;
-    });
-  }
-
   void _markMessagesAsRead(String otherUserId) async {
     // Get the current user's ID
     String? currentUserId = _authservice.currentUser()?.uid;
 
     if (currentUserId == null) {
-      print("No current user found");
+      if (kDebugMode) {
+        print("No current user found");
+      }
       return;
     }
 
@@ -479,70 +478,187 @@ class _HomePageState extends ConsumerState<HomePage>
         .get();
 
     // Batch update to mark messages as read
-    WriteBatch batch = FirebaseFirestore.instance.batch();
-    for (var doc in unreadMessages.docs) {
-      batch.update(doc.reference, {'isRead': true});
+    if (unreadMessages.docs.isNotEmpty) {
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      for (var doc in unreadMessages.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+
+      // Commit the batch
+      await batch.commit();
+    }
+  }
+
+  Stream<int> getMessageCount(String otherUserId) {
+    String? currentUserId = _authservice.currentUser()?.uid;
+
+    // Don't show count if this is the current open chat
+    if (currentUserId == null || otherUserId == _currentOpenChatId) {
+      return Stream.value(0);
     }
 
-    // Commit the batch
-    await batch.commit();
+    String chatroomId = _generateChatroomId(currentUserId, otherUserId);
+
+    return FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(chatroomId)
+        .collection('messages')
+        .where('isRead', isEqualTo: false) // Only unread messages
+        .where('senderID',
+            isEqualTo: otherUserId) // Messages from the other user
+        .snapshots()
+        .map((snapshot) {
+      // Count unread messages
+      if (snapshot.docs.isNotEmpty) {
+        // If new messages come in while the chat is open, mark them as read
+        if (_currentOpenChatId == otherUserId) {
+          _markMessagesAsRead(
+              otherUserId); // Call the method to mark messages as read
+        }
+      }
+      return snapshot.docs.length;
+    });
+  }
+
+  Stream<void> listenForNewMessages(String otherUserId) {
+    String? currentUserId = _authservice.currentUser()?.uid;
+
+    if (currentUserId == null) {
+      return const Stream.empty();
+    }
+
+    String chatroomId = _generateChatroomId(currentUserId, otherUserId);
+
+    return FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(chatroomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      // If the current chat is open, mark messages as read
+      if (_currentOpenChatId == otherUserId) {
+        _markMessagesAsRead(otherUserId);
+      }
+    });
+  }
+
+  Stream<String?> _getProfilePictureStream(String userId) {
+    return FirebaseFirestore.instance
+        .collection('Users') // Replace with your user collection
+        .doc(userId)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.exists) {
+        var userData = snapshot.data() as Map<String, dynamic>;
+        return userData['profilePicture']
+            as String?; // Replace with actual field name
+      }
+      return null; // If the document doesn't exist, return null
+    });
   }
 
   Widget _buildUserItem(Map<String, dynamic> userData, BuildContext context) {
-    // Check if this is not the current user
-    if (userData["uid"] != _authservice.currentUser()?.uid) {
-      return StreamBuilder<int>(
-        stream: getMessageCount(userData['uid']),
-        builder: (context, countSnapshot) {
-          return StreamBuilder<String>(
-            stream: _getLastMessageFromChatroom(userData['uid']),
-            builder: (context, snapshot) {
-              return UserTile(
-                count: countSnapshot.data ?? 0,
-                initial: userData["username"]?.isNotEmpty ?? false
-                    ? userData["username"]![0].toUpperCase()
-                    : '',
-                text: userData["username"] ?? '',
-                lastMessage: snapshot.data ?? '',
-                delete: () async {
-                  await _showDeleteMessage(
-                      context, userData['uid'], userData["username"]);
-                },
-                onTap: () {
-                  _searchFocusNode.unfocus();
+    return StreamBuilder<void>(
+      stream: listenForNewMessages(userData['uid']),
+      builder: (context, snapshot) {
+        return StreamBuilder<int>(
+          stream: getMessageCount(userData['uid']),
+          builder: (context, countSnapshot) {
+            return StreamBuilder<String>(
+              stream: _getLastMessageFromChatroom(userData['uid']),
+              builder: (context, lastMessageSnapshot) {
+                return StreamBuilder<String?>(
+                  stream: _getProfilePictureStream(userData['uid']),
+                  builder: (context, profilePictureSnapshot) {
+                    String? profilePictureUrl = profilePictureSnapshot.data;
 
-                  // Mark messages as read before navigating
-                  _markMessagesAsRead(userData['uid']);
-
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          ChatPage(
-                        ontap: () {
-                          viewProfile(
-                            context,
-                            userData["username"] ?? '',
-                            userData['about'] ?? 'No Status yet',
-                          );
+                    return Slidable(
+                      endActionPane:
+                          ActionPane(motion: const StretchMotion(), children: [
+                        SlidableAction(
+                          padding: const EdgeInsets.all(5),
+                          borderRadius: BorderRadius.circular(10),
+                          onPressed: (context) async {
+                            _chatService.blockUser(userData['uid']);
+                          },
+                          backgroundColor: Colors.blue,
+                          icon: Icons.block,
+                        ),
+                        SlidableAction(
+                          padding: const EdgeInsets.all(5),
+                          borderRadius: BorderRadius.circular(10),
+                          onPressed: (context) async {
+                            await confirmDeleteMessages(
+                                context, userData['uid']);
+                          },
+                          backgroundColor: Colors.red,
+                          icon: Icons.delete,
+                        ),
+                      ]),
+                      child: UserTile(
+                        count: countSnapshot.data ?? 0,
+                        initial: userData["username"]?.isNotEmpty ?? false
+                            ? userData["username"]![0].toUpperCase()
+                            : '',
+                        text: userData["username"] ?? '',
+                        lastMessage: lastMessageSnapshot.data ?? '',
+                        delete: () async {
+                          await _showOptions(
+                              context, userData['uid'], userData["username"]);
                         },
-                        receiverID: userData['uid'],
-                        receiver: userData["username"] ?? '',
+                        onTap: () {
+                          setState(() {
+                            _currentOpenChatId = userData['uid'];
+                          });
+
+                          _markMessagesAsRead(userData['uid']);
+
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      ChatPage(
+                                ontap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserProfilePage(
+                                            profilePictureUrl:
+                                                userData['profilePicture'],
+                                            username: userData['username'],
+                                            about: userData['about']),
+                                      ));
+                                },
+                                receiverProfilePicUrl:
+                                    userData['profilePicture'],
+                                receiverID: userData['uid'],
+                                receiver: userData["username"] ?? '',
+                              ),
+                              transitionsBuilder: (context, animation,
+                                  secondaryAnimation, child) {
+                                return FadeTransition(
+                                    opacity: animation, child: child);
+                              },
+                            ),
+                          ).then((_) {
+                            setState(() {
+                              _currentOpenChatId = null;
+                            });
+                          });
+                        },
+                        // Pass the profile picture URL to the UserTile
+                        profilePictureUrl: profilePictureUrl,
                       ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      );
-    } else {
-      return const Center(child: Text('oops'));
-    }
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 }

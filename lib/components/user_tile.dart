@@ -6,17 +6,17 @@ class UserTile extends StatelessWidget {
     required this.text,
     this.onTap,
     this.delete,
-    this.block,
     this.lastMessage = '',
+    this.profilePictureUrl,
     this.initial,
     this.count = 0,
   });
 
   final String text;
+  final String? profilePictureUrl;
   final String? initial;
   final Function()? onTap;
   final Function()? delete;
-  final Function()? block;
   final String lastMessage;
   final int? count;
 
@@ -43,24 +43,36 @@ class UserTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
             child: Row(
               children: [
-                // Avatar with initial
+                // Avatar with profile picture or initial
                 Container(
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: _getAvatarColor(text), // Generate color from name
+                    color: profilePictureUrl == null
+                        ? _getAvatarColor(text) // Generate color from name
+                        : null, // No background color if profile picture exists
                     shape: BoxShape.circle,
+                    image: profilePictureUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(profilePictureUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: Center(
-                    child: Text(
-                      initial?.toString().toUpperCase() ?? '',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
+                  child: profilePictureUrl == null
+                      ? Center(
+                          child: Text(
+                            initial?.toString().toUpperCase() ?? '',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
 
                 const SizedBox(width: 15),
@@ -106,6 +118,10 @@ class UserTile extends StatelessWidget {
                     ),
                     child: Text(
                       count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -118,7 +134,6 @@ class UserTile extends StatelessWidget {
 
   // Function to generate a background color for the avatar based on the user's name
   Color _getAvatarColor(String name) {
-    // Use a simple hash function to generate a color from the user's name
     int hash = name.hashCode;
     return Color((hash & 0xFFFFFF) | 0xFF000000).withOpacity(0.7);
   }
