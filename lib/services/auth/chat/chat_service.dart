@@ -19,21 +19,46 @@ class ChatService {
     });
   }
 
-  Future<void> sendImageMessage(String receiverID, File imageFile) async {
+  Future<void> sendImageMessage(String receiverID, dynamic imageFile) async {
     final String currentUserID = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email!;
     final Timestamp timestamp = Timestamp.now();
 
     try {
+      // Validate image file
+      if (imageFile == null) {
+        throw Exception('Image file cannot be null');
+      }
+
       // Prepare the file for upload
       final String fileName =
           '${currentUserID}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final String filePath = 'Images/$fileName'; // File path in Supabase
+      final String filePath = 'Images/$fileName';
 
-      // Upload image to Supabase
-      await Supabase.instance.client.storage
-          .from('Images') // Ensure bucket name matches
-          .upload(filePath, imageFile);
+      // Handle different file types for web and mobile
+      if (kIsWeb) {
+        // For web, expect Uint8List
+        if (imageFile is! Uint8List) {
+          throw Exception('Web image must be Uint8List');
+        }
+        // Upload for web
+        await Supabase.instance.client.storage.from('Images').uploadBinary(
+              filePath,
+              imageFile,
+              fileOptions: const FileOptions(upsert: true),
+            );
+      } else {
+        // For mobile, expect File
+        if (imageFile is! File) {
+          throw Exception('Mobile image must be File');
+        }
+        // Upload for mobile
+        await Supabase.instance.client.storage.from('Images').upload(
+              filePath,
+              imageFile,
+              fileOptions: FileOptions(upsert: true),
+            );
+      }
 
       // Generate the public URL
       final String imageUrl = Supabase.instance.client.storage

@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:chat/components/preview.dart';
 import 'package:chat/components/textfield.dart';
+import 'package:chat/components/web.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class UserInputField extends StatefulWidget {
   final Function(String message) onSendMessage;
-  final Function(File imageFile) onSendImage;
+  final Function(dynamic imageFile) onSendImage;
 
   const UserInputField({
     super.key,
@@ -36,20 +38,44 @@ class _UserInputFieldState extends State<UserInputField> {
   }
 
   Future<void> _pickImage() async {
-    final pickedImage = await _getImage();
-    if (pickedImage != null) {
-      // Navigate to the ImagePickerPreview screen
-      final imageUrl = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ImagePickerPreview(imageFile: pickedImage),
-        ),
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
       );
 
-      if (imageUrl != null) {
-        // Handle the image URL after successful upload
-        widget.onSendImage(pickedImage); // Send the image file to parent widget
+      if (pickedFile != null) {
+        dynamic result;
+        if (kIsWeb) {
+          // For web
+          result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WebImagePickerPreview(imageFile: pickedFile),
+            ),
+          );
+        } else {
+          // For mobile
+          result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImagePickerPreview(
+                imageFile: File(pickedFile.path),
+              ),
+            ),
+          );
+        }
+
+        if (result != null) {
+          // Directly call the onSendImage handler here
+          widget.onSendImage(result);
+        }
       }
+    } catch (e) {
+      print('Error picking image: $e');
     }
   }
 
@@ -57,24 +83,18 @@ class _UserInputFieldState extends State<UserInputField> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Input Field Section
         Padding(
           padding: const EdgeInsets.only(bottom: 15, right: 20),
           child: Row(
             children: [
-              const SizedBox(
-                width: 10,
-              ),
-              // Image Picker Icon
+              const SizedBox(width: 10),
               IconButton(
                 icon: Icon(
                   Icons.image,
                   color: Colors.blue[700],
                 ),
-                onPressed: _pickImage, // Trigger image picker and navigation
+                onPressed: _pickImage,
               ),
-
-              // Use Textfield2 for message input
               Expanded(
                 child: MyTextField(
                   maxLines: null,
@@ -82,14 +102,12 @@ class _UserInputFieldState extends State<UserInputField> {
                   hintText: 'Type a message...',
                   obscure: false,
                   onChanged: (text) {
-                    setState(() {}); // Update UI for send button
+                    setState(() {});
                   },
                   onTap: () {},
                   keyboardtype: TextInputType.text,
                 ),
               ),
-
-              // Send Button (visible only when text is entered)
               if (_messageController.text.trim().isNotEmpty)
                 Container(
                   height: 40,
@@ -113,22 +131,5 @@ class _UserInputFieldState extends State<UserInputField> {
         ),
       ],
     );
-  }
-
-  // Pick image function using ImagePicker package
-  Future<File?> _getImage() async {
-    try {
-      final picker = ImagePicker();
-      final XFile? pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 80,
-      );
-      return pickedFile != null ? File(pickedFile.path) : null;
-    } catch (e) {
-      print('Error picking image: $e');
-      return null;
-    }
   }
 }

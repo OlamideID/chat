@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ImagePickerPreview extends StatefulWidget {
   final File imageFile;
@@ -19,39 +17,22 @@ class ImagePickerPreview extends StatefulWidget {
 
 class _ImagePickerPreviewState extends State<ImagePickerPreview> {
   bool _isUploading = false;
-  bool _uploadCompleted = false; // Track upload status
 
-  Future<String?> _uploadImage(File imageFile) async {
+  Future<void> _sendImage(File imageFile) async {
     setState(() => _isUploading = true);
 
     try {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) {
-        throw Exception('User not authenticated with Firebase.');
-      }
-
-      final fileName =
-          '${firebaseUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      await Supabase.instance.client.storage.from('Images').upload(
-          fileName, imageFile,
-          fileOptions: const FileOptions(upsert: true));
-
-      final publicUrl = Supabase.instance.client.storage
-          .from('Images')
-          .getPublicUrl(fileName);
-
-      setState(() {
-        _isUploading = false;
-        _uploadCompleted = true; // Mark upload as completed
-      });
-      return publicUrl;
+      // Return the image file back to the calling screen
+      Navigator.of(context).pop(imageFile);
     } catch (e) {
       if (kDebugMode) {
-        print('Image upload failed: $e');
+        print('Image processing failed: $e');
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to process the image: $e')),
+      );
+    } finally {
       setState(() => _isUploading = false);
-      return null;
     }
   }
 
@@ -70,7 +51,7 @@ class _ImagePickerPreviewState extends State<ImagePickerPreview> {
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: FileImage(widget.imageFile),
-                  fit: BoxFit.cover, // Make image cover the entire container
+                  fit: BoxFit.cover, // Keep original design
                 ),
               ),
               child: _isUploading
@@ -100,11 +81,8 @@ class _ImagePickerPreviewState extends State<ImagePickerPreview> {
             right: 20,
             child: ElevatedButton(
               onPressed: () async {
-                if (!_isUploading && !_uploadCompleted) {
-                  final imageUrl = await _uploadImage(widget.imageFile);
-                  if (imageUrl != null) {
-                    Navigator.of(context).pop(imageUrl); // Send image URL back
-                  }
+                if (!_isUploading) {
+                  await _sendImage(widget.imageFile);
                 }
               },
               style: ElevatedButton.styleFrom(
