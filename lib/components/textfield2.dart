@@ -11,7 +11,6 @@ class Textfield2 extends ConsumerWidget {
       required this.controller,
       required this.onTap,
       this.onChanged,
-      this.keyboardtype,
       });
   final String hintText;
   final bool obscure;
@@ -19,7 +18,6 @@ class Textfield2 extends ConsumerWidget {
   final TextEditingController controller;
   final Function() onTap;
   final Function(String)? onChanged;
-  final TextInputType? keyboardtype;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +30,6 @@ class Textfield2 extends ConsumerWidget {
         onTap: onTap,
         controller: controller,
         obscureText: obscure,
-        keyboardType: keyboardtype,
         cursorColor: isDarkMode ? Colors.white : Colors.black,
         decoration: InputDecoration(
             enabledBorder: OutlineInputBorder(

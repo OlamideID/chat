@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:chat/pages/fullscreenimage.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -120,26 +121,27 @@ class ChatBubble extends StatelessWidget {
               if (imageUrl != null && imageUrl!.isNotEmpty)
                 GestureDetector(
                   onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        child: CachedNetworkImage(
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FullScreenImage(
                           imageUrl: imageUrl!,
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
                         ),
                       ),
                     );
                   },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl!,
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.error),
+                  child: Hero(
+                    tag: imageUrl!,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl!,
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error),
+                      ),
                     ),
                   ),
                 ),

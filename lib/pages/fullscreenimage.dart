@@ -1,14 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-class FullScreenProfilePicturePage extends StatelessWidget {
-  final String profilePictureUrl;
-  final String profilePicture;
+class FullScreenImage extends StatelessWidget {
+  final String imageUrl;
 
-  const FullScreenProfilePicturePage({
+  const FullScreenImage({
     super.key,
-    required this.profilePictureUrl,
-    required this.profilePicture,
+    required this.imageUrl,
   });
 
   @override
@@ -25,11 +23,11 @@ class FullScreenProfilePicturePage extends StatelessWidget {
       ),
       body: Center(
         child: Hero(
-          tag: 'profilePictureHero',
+          tag: imageUrl,
           child: InteractiveViewer(
             maxScale: 5.0,
             child: CachedNetworkImage(
-              imageUrl: profilePictureUrl,
+              imageUrl: imageUrl,
               fit: BoxFit.contain,
               width: double.infinity,
               height: double.infinity,

@@ -625,14 +625,12 @@ class _HomePageState extends ConsumerState<HomePage>
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => UserProfilePage(
-                                            profilePictureUrl:
-                                                userData['profilePicture'],
+                                            profilePictureUrl: profilePictureUrl,
                                             username: userData['username'],
                                             about: userData['about']),
                                       ));
                                 },
-                                receiverProfilePicUrl:
-                                    userData['profilePicture'],
+                                receiverProfilePicUrl: profilePictureUrl,
                                 receiverID: userData['uid'],
                                 receiver: userData["username"] ?? '',
                               ),
