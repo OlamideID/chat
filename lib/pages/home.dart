@@ -4,7 +4,6 @@ import 'package:chat/pages/blocked2.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/pages/profile_page.dart';
 import 'package:chat/pages/user_profile%20page.dart';
-// import 'package:chat/providers/theme_provider.dart';
 import 'package:chat/services/auth/authservice.dart';
 import 'package:chat/services/auth/chat/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

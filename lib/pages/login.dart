@@ -153,7 +153,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       // Check if the email exists in the Firestore users collection
       final userQuery = await firestore
-          .collection('users')
+          .collection('Users')
           .where('email', isEqualTo: email)
           .limit(1)
           .get();

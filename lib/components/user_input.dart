@@ -54,7 +54,8 @@ class _UserInputFieldState extends State<UserInputField> {
           result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => WebImagePickerPreview(imageFile: pickedFile),
+              builder: (context) =>
+                  WebImagePickerPreview(imageFile: pickedFile),
             ),
           );
         } else {
@@ -97,15 +98,14 @@ class _UserInputFieldState extends State<UserInputField> {
               ),
               Expanded(
                 child: MyTextField(
-                  maxLines: null,
                   controller: _messageController,
+                  maxLines: null,
                   hintText: 'Type a message...',
                   obscure: false,
                   onChanged: (text) {
                     setState(() {});
                   },
                   onTap: () {},
-                  keyboardtype: TextInputType.text,
                 ),
               ),
               if (_messageController.text.trim().isNotEmpty)
